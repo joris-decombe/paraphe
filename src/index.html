@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Nothing in this page may reach the network: no fonts, no scripts, no analytics. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data: blob:; font-src data: blob:; connect-src data: blob:; worker-src blob:; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light">
+<title>Paraphe</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3fa8'/%3E%3Cpath d='M7 21c3-1 4-9 7-9s-1 9 2 9 3-5 5-5 1 4 4 3' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>/*CSS*/</style>
+</head>
+<body data-tool="select">
+<header class="toolbar">
+  <div class="brand" aria-label="Paraphe">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 22c3-1 4-10 7.5-10S11 22 14.5 22s3-5.5 5.5-5.5 1 4.5 5 3.5"/></svg>
+    <span>Paraphe</span>
+  </div>
+  <button id="open" class="btn" title="Open a PDF (Ctrl+O)">Open</button>
+  <span id="fileName" class="file-name"></span>
+
+  <span class="spacer"></span>
+
+  <div class="group" role="toolbar" aria-label="Tools">
+    <button class="tool" data-tool="select" title="Select and move (Esc)" aria-label="Select">
+      <svg viewBox="0 0 24 24"><path d="M5 3.5 19 11l-6.2 1.6L10 19z"/></svg>
+    </button>
+    <button class="tool" data-tool="text" title="Add text" aria-label="Text">
+      <svg viewBox="0 0 24 24"><path d="M5 6V4.5h14V6M12 4.5v15M9 19.5h6"/></svg>
+    </button>
+    <button class="tool" data-tool="check" title="Check mark" aria-label="Check mark">
+      <svg viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></svg>
+    </button>
+    <button class="tool" data-tool="cross" title="Cross" aria-label="Cross">
+      <svg viewBox="0 0 24 24"><path d="M6 6 18 18M18 6 6 18"/></svg>
+    </button>
+    <button class="tool" data-tool="date" title="Today's date" aria-label="Date">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+    </button>
+    <button class="tool sign" data-tool="sign" title="Add your signature">
+      <svg viewBox="0 0 24 24"><path d="M3 17c2.5-.5 3-7 5.5-7S8 17 10.5 17s2-3.5 4-3.5.5 3 3.5 2.5M3 21h18"/></svg>
+      <span>Sign</span>
+    </button>
+  </div>
+
+  <div class="group" aria-label="Text style">
+    <button id="sizeDown" class="tool" title="Smaller text" aria-label="Smaller">
+      <svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>
+    </button>
+    <span id="sizeValue" class="value" title="Text size (pt)">11</span>
+    <button id="sizeUp" class="tool" title="Bigger text" aria-label="Bigger">
+      <svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg>
+    </button>
+    <button class="swatch" data-color="black" style="--c:#111" title="Black ink" aria-label="Black"></button>
+    <button class="swatch" data-color="blue" style="--c:#1f3fa8" title="Blue ink" aria-label="Blue"></button>
+  </div>
+
+  <div class="group">
+    <button id="undo" class="tool" title="Undo (Ctrl+Z)" aria-label="Undo">
+      <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    </button>
+    <button id="delete" class="tool" title="Delete selected (Del)" aria-label="Delete">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+    </button>
+  </div>
+
+  <span class="spacer"></span>
+
+  <div class="group">
+    <button id="zoomOut" class="tool" title="Zoom out (Ctrl+-)" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8 11h6"/></svg>
+    </button>
+    <span id="zoomValue" class="value">100%</span>
+    <button id="zoomIn" class="tool" title="Zoom in (Ctrl++)" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8 11h6M11 8v6"/></svg>
+    </button>
+  </div>
+  <button id="save" class="btn primary" title="Save a copy (Ctrl+S)">Save</button>
+</header>
+
+<div id="viewerContainer"><div id="viewer" class="pdfViewer"></div></div>
+
+<section class="empty">
+  <div class="empty-card">
+    <svg class="empty-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 22c3-1 4-10 7.5-10S11 22 14.5 22s3-5.5 5.5-5.5 1 4.5 5 3.5"/></svg>
+    <h1>Fill and sign a PDF</h1>
+    <p>Drop a file anywhere, or</p>
+    <button id="emptyOpen" class="btn primary big">Open a PDF</button>
+    <p class="fine">Everything happens on this computer. Files are never uploaded.</p>
+  </div>
+</section>
+
+<div class="drop-veil"><span>Drop to open</span></div>
+<div id="hint" class="hint-pill" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+<input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+
+<script type="module">/*JS*/</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "paraphe",
+  "version": "1.0.0",
+  "description": "Fill and sign PDFs. Offline, no ads, no bloat.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joris-decombe/paraphe.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/joris-decombe/paraphe/issues"
+  },
+  "homepage": "https://github.com/joris-decombe/paraphe#readme",
+  "dependencies": {
+    "pdfjs-dist": "6.5.438"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "private": true
+}
