@@ -70,6 +70,18 @@ const viewer = new PDFViewer({
 });
 linkService.setViewer(viewer);
 
+// pdf.js scrolls a match to 50px from the top, which is under our find bar.
+const scrollMatch = findController.scrollMatchIntoView.bind(findController);
+findController.scrollMatchIntoView = (args) => {
+  scrollMatch(args);
+  const container = $("#viewerContainer");
+  const match = args.element?.getBoundingClientRect();
+  const bar = $("#findbar");
+  if (!match || bar.hidden) return;
+  const barBottom = bar.getBoundingClientRect().bottom;
+  if (match.top < barBottom + 12) container.scrollTop -= barBottom + 48 - match.top;
+};
+
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -407,7 +419,7 @@ function onItemPointerDown(e, id, onHandle) {
 }
 
 document.addEventListener("pointerdown", (e) => {
-  if (e.target.closest(".pp-item, .toolbar, dialog")) return;
+  if (e.target.closest(".pp-item, .toolbar, .dock, .findbar, .sidebar, dialog")) return;
   if (state.editingId) finishEditing(state.editingId);
   if (state.selectedId) select(null);
 });
@@ -696,6 +708,16 @@ $("#zoomSelect").addEventListener("change", (e) => {
   $("#viewerContainer").focus({ preventScroll: true });
 });
 
+// Fit modes keep fitting when the window or the contents panel changes size.
+let refitFrame = 0;
+new ResizeObserver(() => {
+  cancelAnimationFrame(refitFrame);
+  refitFrame = requestAnimationFrame(() => {
+    const mode = viewer.currentScaleValue;
+    if (state.doc && FIT_MODES.has(mode) && $("#viewerContainer").clientWidth > 0) viewer.currentScaleValue = mode;
+  });
+}).observe($("#viewerContainer"));
+
 // Ctrl + mouse wheel (and touchpad pinch) zooms around the pointer.
 $("#viewerContainer").addEventListener("wheel", (e) => {
   if (!e.ctrlKey || !state.doc) return;
@@ -841,7 +863,8 @@ async function printDocument() {
   try {
     if (state.editingId) finishEditing(state.editingId);
     const bytes = await buildOutputBytes();
-    const doc = await pdfjsLib.getDocument({ data: bytes, ...DOC_OPTIONS }).promise;
+    const task = pdfjsLib.getDocument({ data: bytes, ...DOC_OPTIONS });
+    const doc = await task.promise;
     const images = [];
     for (let i = 1; i <= doc.numPages; i++) {
       toast(`Preparing to print… ${i} / ${doc.numPages}`);
@@ -850,7 +873,7 @@ async function printDocument() {
       const canvas = document.createElement("canvas");
       canvas.width = Math.floor(viewport.width);
       canvas.height = Math.floor(viewport.height);
-      await page.render({ canvas, viewport, intent: "print", annotationMode: pdfjsLib.AnnotationMode.ENABLE_FORMS }).promise;
+      await page.render({ canvas, viewport, intent: "print", annotationMode: pdfjsLib.AnnotationMode.ENABLE }).promise;
       const blob = await new Promise((r) => canvas.toBlob(r, "image/png"));
       const url = URL.createObjectURL(blob);
       urls.push(url);
@@ -859,7 +882,7 @@ async function printDocument() {
       images.push(img);
       page.cleanup();
     }
-    await doc.destroy();
+    await task.destroy();
     container.replaceChildren(...images);
     await Promise.all(images.map((img) => img.decode()));
     $("#toast").hidden = true;
