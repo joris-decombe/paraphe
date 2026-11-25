@@ -1,0 +1,19 @@
+# Paraphe
+
+> Paraphe is a free, open-source (MIT) app to fill in and sign PDF forms: type into form fields, add text anywhere, tick or cross boxes, add today's date in the local format, and add a signature (drawn, typed or from a photo), then save a copy. It runs on Windows 10 and 11 as a small portable app, or in a web browser. It's a lightweight alternative to Adobe Acrobat Reader for people who only need to fill and sign forms. No account, no ads, no telemetry: documents never leave the computer, and scripts inside PDFs never run.
+
+Made by Joris Decombe (https://dx2-66.com).
+
+## Get it
+
+- [Download for Windows](https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip): a zip; extract it and run Paraphe.exe. No install or admin rights needed. It can install itself for the current user and become the default PDF app.
+- [Use it in the browser](https://paraphe.dx2-66.com/app/): works in Edge, Chrome and Firefox; the page makes no network requests.
+- [Source code](https://github.com/joris-decombe/paraphe) and [all releases](https://github.com/joris-decombe/paraphe/releases).
+
+## Details
+
+- [English page](https://paraphe.dx2-66.com/): features, privacy, download and limits.
+- [Page en français](https://paraphe.dx2-66.com/fr/)
+- Dates and amounts follow the user's region; saved files are named in the user's language ("Form (signed).pdf", "Form (signé).pdf").
+- Updates (Windows): only if the user agrees, checked once a day against GitHub, and installed only if signed with the project's release key.
+- Limits: form scripts (auto-calculated totals) don't run; signatures are visual, not certified digital signatures; XFA-only forms aren't supported; added text can't be Chinese, Japanese or Korean yet.

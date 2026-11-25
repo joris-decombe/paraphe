@@ -436,7 +436,9 @@ body:not(.has-doc) .toast { bottom: 24px; }
 .check-row input { width: 16px; height: 16px; accent-color: var(--ink); }
 .set-status:empty { display: none; }
 .set-status { color: var(--text) !important; }
-.set-foot { color: var(--muted); font-size: 12.5px; padding-top: 4px; }
+.set-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 12.5px; padding-top: 12px; border-top: 1px solid var(--line); }
+.set-foot a { color: var(--ink); text-decoration: none; }
+.set-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .update-bar {
   position: fixed; z-index: 80; top: calc(var(--bar-h) + 10px); left: 50%; transform: translateX(-50%);
