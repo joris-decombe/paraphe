@@ -225,3 +225,60 @@ body.dragging .drop-veil { display: grid; }
 
 .sig-foot { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
 .sig-foot .check { margin-top: 0; }
+
+/* ---------- reader: pager, zoom, find, contents, print ---------- */
+
+.page-input {
+  width: 3.2em; height: 28px; border: 1px solid transparent; border-radius: 6px; background: #fff;
+  text-align: center; font: inherit; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.page-input:focus { outline: none; border-color: var(--ink); }
+.page-count { min-width: 0; padding-right: 6px; white-space: nowrap; }
+.zoom-select {
+  height: 28px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px;
+  color: var(--muted); font-variant-numeric: tabular-nums; cursor: pointer; padding: 0 2px; max-width: 7.5em;
+}
+.zoom-select:hover { background: #e5e1d9; }
+body:not(.has-doc) .pager, body:not(.has-doc) .zoom-select { opacity: 0.4; pointer-events: none; }
+
+.findbar {
+  position: fixed; top: calc(var(--bar-h) + 10px); right: 18px; z-index: 55;
+  display: flex; align-items: center; gap: 2px; padding: 5px 5px 5px 10px; border-radius: 10px;
+  background: #fff; border: 1px solid var(--line); box-shadow: 0 8px 28px rgb(0 0 0 / 0.14);
+}
+.findbar input { width: 220px; height: 30px; border: 0; font: inherit; outline: none; }
+.find-count { min-width: 5.5em; text-align: right; padding-right: 6px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.findbar.notfound input { color: #b3261e; }
+
+:root { --sidebar-w: 270px; }
+.sidebar {
+  position: absolute; top: var(--bar-h); bottom: 0; left: 0; width: var(--sidebar-w); z-index: 5;
+  background: var(--chrome); border-right: 1px solid var(--line); overflow: auto; padding: 10px 8px 24px;
+}
+body.sidebar-open #viewerContainer { left: var(--sidebar-w); }
+.sidebar-head { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 4px 8px 8px; }
+.outline ul { list-style: none; margin: 0; padding: 0 0 0 12px; }
+.outline > ul { padding-left: 0; }
+.outline li { margin: 0; }
+.outline a {
+  display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none;
+  font-size: 13px; line-height: 1.3; cursor: pointer;
+}
+.outline a:hover { background: #ece8e0; }
+.outline .bold { font-weight: 650; }
+.outline .italic { font-style: italic; }
+
+/* Narrow windows: drop labels before controls. */
+@media (max-width: 1360px) { .file-name { display: none; } }
+@media (max-width: 1220px) { .brand span { display: none; } .tool.sign span { display: none; } }
+
+/* Printing shows only the rendered pages. */
+#printContainer { display: none; }
+@media print {
+  body > *:not(#printContainer) { display: none !important; }
+  html, body { height: auto; overflow: visible; background: #fff; }
+  #printContainer { display: block; }
+  #printContainer img { display: block; width: 100%; height: auto; page-break-after: always; break-after: page; }
+  #printContainer img:last-child { page-break-after: auto; break-after: auto; }
+}
+@page { margin: 0; }

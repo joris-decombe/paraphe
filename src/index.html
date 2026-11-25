@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Nothing in this page may reach the network: no fonts, no scripts, no analytics. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data: blob:; font-src data: blob:; connect-src data: blob:; worker-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; img-src data: blob:; font-src data: blob:; connect-src data: blob:; worker-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light">
 <title>Paraphe</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3fa8'/%3E%3Cpath d='M7 21c3-1 4-9 7-9s-1 9 2 9 3-5 5-5 1 4 4 3' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
@@ -16,6 +16,9 @@
     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 22c3-1 4-10 7.5-10S11 22 14.5 22s3-5.5 5.5-5.5 1 4.5 5 3.5"/></svg>
     <span>Paraphe</span>
   </div>
+  <button id="sidebarToggle" class="tool" title="Contents" aria-label="Contents" aria-pressed="false" hidden>
+    <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M5.5 8.5h1.5M5.5 11.5h1.5"/></svg>
+  </button>
   <button id="open" class="btn" title="Open a PDF (Ctrl+O)">Open</button>
   <span id="fileName" class="file-name"></span>
 
@@ -83,11 +86,38 @@
 
   <span class="spacer"></span>
 
+  <div class="group pager" aria-label="Page">
+    <input id="pageInput" class="page-input" type="text" inputmode="numeric" autocomplete="off" aria-label="Page number" title="Go to page">
+    <span id="pageCount" class="value page-count">/ 0</span>
+  </div>
+
+  <div class="group">
+    <button id="findBtn" class="tool" title="Find in document (Ctrl+F)" aria-label="Find">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></svg>
+    </button>
+    <button id="printBtn" class="tool" title="Print (Ctrl+P)" aria-label="Print">
+      <svg viewBox="0 0 24 24"><path d="M7 9V3.5h10V9M7 17H4.5V9h15v8H17"/><rect x="7" y="14" width="10" height="6.5"/></svg>
+    </button>
+  </div>
+
   <div class="group">
     <button id="zoomOut" class="tool" title="Zoom out (Ctrl+-)" aria-label="Zoom out">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8 11h6"/></svg>
     </button>
-    <span id="zoomValue" class="value">100%</span>
+    <select id="zoomSelect" class="zoom-select" title="Zoom" aria-label="Zoom">
+      <option value="auto">Automatic</option>
+      <option value="page-width">Fit width</option>
+      <option value="page-fit">Fit page</option>
+      <option value="0.5">50%</option>
+      <option value="0.75">75%</option>
+      <option value="1">100%</option>
+      <option value="1.25">125%</option>
+      <option value="1.5">150%</option>
+      <option value="2">200%</option>
+      <option value="3">300%</option>
+      <option value="4">400%</option>
+      <option id="zoomCustom" value="custom" hidden></option>
+    </select>
     <button id="zoomIn" class="tool" title="Zoom in (Ctrl++)" aria-label="Zoom in">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8 11h6M11 8v6"/></svg>
     </button>
@@ -95,7 +125,20 @@
   <button id="save" class="btn primary" title="Save a copy (Ctrl+S)">Save</button>
 </header>
 
-<div id="viewerContainer"><div id="viewer" class="pdfViewer"></div></div>
+<aside id="sidebar" class="sidebar" aria-label="Contents" hidden>
+  <div class="sidebar-head">Contents</div>
+  <nav id="outline" class="outline"></nav>
+</aside>
+
+<div id="viewerContainer" tabindex="-1"><div id="viewer" class="pdfViewer"></div></div>
+
+<div id="findbar" class="findbar" role="search" hidden>
+  <input id="findInput" type="text" placeholder="Find in document" autocomplete="off" spellcheck="false" aria-label="Find in document">
+  <span id="findCount" class="find-count" aria-live="polite"></span>
+  <button id="findPrev" class="tool" title="Previous (Shift+Enter)" aria-label="Previous match"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+  <button id="findNext" class="tool" title="Next (Enter)" aria-label="Next match"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button id="findClose" class="tool" title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+</div>
 
 <section class="empty">
   <div class="empty-card">
@@ -111,6 +154,7 @@
 <div class="drop-veil"><span>Drop to open</span></div>
 <div id="hint" class="hint-pill" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="printContainer" aria-hidden="true"></div>
 <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
 
 <script type="module">/*JS*/</script>

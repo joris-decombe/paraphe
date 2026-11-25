@@ -1,5 +1,5 @@
 import { pdfjsLib } from "./pdfjs.js";
-import { EventBus, PDFLinkService, PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
+import { EventBus, FindState, PDFFindController, PDFLinkService, PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
 import "pdfjs-dist/web/pdf_viewer.css";
 import "./app.css";
 import bundledFiles from "virtual:pdf-assets";
@@ -47,15 +47,24 @@ const noL10n = {
   resume() {},
 };
 
+const DOC_OPTIONS = {
+  BinaryDataFactory: BundledDataFactory,
+  useSystemFonts: false,
+  isEvalSupported: false,
+  enableXfa: false,
+};
+
 const eventBus = new EventBus();
 const linkService = new PDFLinkService({ eventBus, externalLinkTarget: 2 /* _blank */ });
+const findController = new PDFFindController({ eventBus, linkService });
 const viewer = new PDFViewer({
   container: $("#viewerContainer"),
   viewer: $("#viewer"),
   eventBus,
   linkService,
+  findController,
   l10n: noL10n,
-  textLayerMode: 0,
+  textLayerMode: 1, // selectable text, and highlights for Find
   annotationEditorMode: AnnotationEditorType.DISABLE,
   removePageBorders: false,
 });
@@ -437,7 +446,7 @@ function updateChrome() {
   $("#save").disabled = !hasDoc;
   $("#delete").disabled = !state.selectedId;
   $("#undo").disabled = state.undo.length === 0;
-  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp"]) $(id).disabled = !hasDoc;
+  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn"]) $(id).disabled = !hasDoc;
   $("#fileName").textContent = state.fileName ? `${state.fileName}${state.dirty ? " •" : ""}` : "";
   const hint = HINTS[state.tool];
   $("#hint").textContent = hint || "";
@@ -554,12 +563,33 @@ document.addEventListener("keydown", (e) => {
     viewer.decreaseScale();
     return;
   }
+  if (mod && e.key === "0") {
+    e.preventDefault();
+    if (state.doc) viewer.currentScaleValue = "auto";
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    if (state.doc) openFindbar();
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "p") {
+    e.preventDefault();
+    if (state.doc) printDocument();
+    return;
+  }
+  if (e.key === "F3" || (mod && e.key.toLowerCase() === "g")) {
+    e.preventDefault();
+    if (state.doc) findAgain(e.shiftKey);
+    return;
+  }
   if (document.querySelector("dialog[open]") || isTyping(e.target)) return;
   if (mod && e.key.toLowerCase() === "z") {
     e.preventDefault();
     undo();
   } else if (e.key === "Escape") {
-    if (state.tool !== "select") setTool("select");
+    if (!$("#findbar").hidden) closeFindbar();
+    else if (state.tool !== "select") setTool("select");
     else select(null);
   } else if (e.key === "Delete" || e.key === "Backspace") {
     if (state.selectedId) {
@@ -579,6 +609,9 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") item.y -= step;
     if (e.key === "ArrowDown") item.y += step;
     layoutItem(item);
+  } else if (state.doc && !mod && (e.key === "Home" || e.key === "End")) {
+    e.preventDefault();
+    viewer.currentPageNumber = e.key === "Home" ? 1 : viewer.pagesCount;
   }
 });
 
@@ -615,19 +648,232 @@ window.addEventListener("beforeunload", (e) => {
 
 eventBus.on("pagesinit", () => {
   requestAnimationFrame(() => {
-    viewer.currentScaleValue = "page-width";
-    if (viewer.currentScale > 1.25) viewer.currentScale = 1.25;
+    // Fit the page width, capped at 125%, and keep fitting when the window resizes.
+    viewer.currentScaleValue = "auto";
     attachAllOverlays();
+    $("#viewerContainer").focus({ preventScroll: true });
   });
+  $("#pageCount").textContent = `/ ${viewer.pagesCount}`;
+  $("#pageInput").value = "1";
 });
 eventBus.on("pagerendered", ({ pageNumber }) => {
   ensureOverlay(pageNumber - 1);
   for (const item of state.items) if (item.page === pageNumber - 1) layoutItem(item);
 });
-eventBus.on("scalechanging", ({ scale }) => {
+eventBus.on("scalechanging", ({ scale, presetValue }) => {
   attachAllOverlays();
-  $("#zoomValue").textContent = `${Math.round(scale * 100)}%`;
+  showZoom(scale, presetValue);
 });
+
+// ---------------------------------------------------------------------------
+// Reading: zoom, pages, find, contents, print
+// ---------------------------------------------------------------------------
+
+const FIT_MODES = new Set(["auto", "page-width", "page-fit"]);
+
+function showZoom(scale, presetValue) {
+  const select = $("#zoomSelect");
+  const custom = $("#zoomCustom");
+  for (const o of select.options) if (FIT_MODES.has(o.value)) o.textContent = o.dataset.label ??= o.textContent;
+  const percent = `${Math.round(scale * 100)}%`;
+  if (FIT_MODES.has(presetValue)) {
+    // A fit mode: name it, with the size it resolved to.
+    const o = [...select.options].find((x) => x.value === presetValue);
+    o.textContent = `${o.dataset.label} (${percent})`;
+    custom.hidden = true;
+    select.value = presetValue;
+    return;
+  }
+  const exact = [...select.options].find((o) => !FIT_MODES.has(o.value) && o.value !== "custom" && Math.abs(Number(o.value) - scale) < 0.001);
+  custom.hidden = !!exact;
+  custom.textContent = percent;
+  select.value = exact ? exact.value : "custom";
+}
+
+$("#zoomSelect").addEventListener("change", (e) => {
+  if (!state.doc || e.target.value === "custom") return;
+  viewer.currentScaleValue = e.target.value;
+  $("#viewerContainer").focus({ preventScroll: true });
+});
+
+// Ctrl + mouse wheel (and touchpad pinch) zooms around the pointer.
+$("#viewerContainer").addEventListener("wheel", (e) => {
+  if (!e.ctrlKey || !state.doc) return;
+  e.preventDefault();
+  const steps = Math.max(1, Math.min(3, Math.round(Math.abs(e.deltaY) / 100) || 1));
+  const opts = { steps, origin: [e.clientX, e.clientY] };
+  if (e.deltaY < 0) viewer.increaseScale(opts);
+  else viewer.decreaseScale(opts);
+}, { passive: false });
+
+eventBus.on("pagechanging", ({ pageNumber }) => {
+  if (document.activeElement !== $("#pageInput")) $("#pageInput").value = String(pageNumber);
+});
+
+function goToTypedPage() {
+  const n = parseInt($("#pageInput").value, 10);
+  if (state.doc && n >= 1 && n <= viewer.pagesCount) viewer.currentPageNumber = n;
+  $("#pageInput").value = state.doc ? String(viewer.currentPageNumber) : "";
+}
+$("#pageInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    goToTypedPage();
+    $("#viewerContainer").focus({ preventScroll: true });
+  } else if (e.key === "Escape") {
+    $("#pageInput").value = state.doc ? String(viewer.currentPageNumber) : "";
+    $("#viewerContainer").focus({ preventScroll: true });
+  }
+});
+$("#pageInput").addEventListener("blur", goToTypedPage);
+$("#pageInput").addEventListener("focus", (e) => e.target.select());
+
+// Find ----------------------------------------------------------------------
+
+function dispatchFind(type, findPrevious = false) {
+  eventBus.dispatch("find", {
+    source: null,
+    type,
+    query: $("#findInput").value,
+    caseSensitive: false,
+    entireWord: false,
+    highlightAll: true,
+    findPrevious,
+    matchDiacritics: false,
+  });
+}
+
+function openFindbar() {
+  $("#findbar").hidden = false;
+  const input = $("#findInput");
+  const selected = getSelection()?.toString().trim();
+  if (selected && selected.length < 100 && !selected.includes("\n")) input.value = selected;
+  input.focus();
+  input.select();
+  if (input.value) dispatchFind("");
+}
+
+function closeFindbar() {
+  $("#findbar").hidden = true;
+  eventBus.dispatch("findbarclose", { source: null });
+  $("#viewerContainer").focus({ preventScroll: true });
+}
+
+function findAgain(previous) {
+  if ($("#findbar").hidden || !$("#findInput").value) openFindbar();
+  else dispatchFind("again", previous);
+}
+
+$("#findBtn").addEventListener("click", () => ($("#findbar").hidden ? openFindbar() : closeFindbar()));
+$("#findClose").addEventListener("click", closeFindbar);
+$("#findNext").addEventListener("click", () => dispatchFind("again", false));
+$("#findPrev").addEventListener("click", () => dispatchFind("again", true));
+$("#findInput").addEventListener("input", () => dispatchFind(""));
+$("#findInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    dispatchFind("again", e.shiftKey);
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    closeFindbar();
+  }
+});
+
+function showFindCount({ current = 0, total = 0 } = {}) {
+  const query = $("#findInput").value;
+  $("#findCount").textContent = !query ? "" : total ? `${current} of ${total}` : "No results";
+  $("#findbar").classList.toggle("notfound", !!query && !total);
+}
+eventBus.on("updatefindmatchescount", ({ matchesCount }) => showFindCount(matchesCount));
+eventBus.on("updatefindcontrolstate", ({ state: findState, matchesCount }) => {
+  if (findState !== FindState.PENDING) showFindCount(matchesCount);
+});
+
+// Contents (outline) ----------------------------------------------------------
+
+function setSidebar(open) {
+  $("#sidebar").hidden = !open;
+  document.body.classList.toggle("sidebar-open", open);
+  $("#sidebarToggle").setAttribute("aria-pressed", String(open));
+}
+$("#sidebarToggle").addEventListener("click", () => setSidebar($("#sidebar").hidden));
+
+function outlineList(items) {
+  const ul = document.createElement("ul");
+  for (const item of items) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#";
+    a.textContent = item.title || "(untitled)";
+    if (item.bold) a.classList.add("bold");
+    if (item.italic) a.classList.add("italic");
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (item.dest) linkService.goToDestination(item.dest);
+      else if (item.url && /^https?:/i.test(item.url)) window.open(item.url, "_blank", "noopener");
+    });
+    li.append(a);
+    if (item.items?.length) li.append(outlineList(item.items));
+    ul.append(li);
+  }
+  return ul;
+}
+
+async function loadOutline(doc) {
+  const outline = await doc.getOutline().catch(() => null);
+  if (doc !== state.doc) return;
+  $("#outline").replaceChildren(...(outline?.length ? [outlineList(outline)] : []));
+  $("#sidebarToggle").hidden = !outline?.length;
+  // Open it by default for long documents that have one.
+  setSidebar(!!outline?.length && doc.numPages >= 8 && window.innerWidth >= 1100);
+}
+
+// Print -----------------------------------------------------------------------
+
+let printing = false;
+
+/** Print exactly what Save would write: render that file's pages as images. */
+async function printDocument() {
+  if (printing || !state.doc) return;
+  printing = true;
+  const container = $("#printContainer");
+  const urls = [];
+  try {
+    if (state.editingId) finishEditing(state.editingId);
+    const bytes = await buildOutputBytes();
+    const doc = await pdfjsLib.getDocument({ data: bytes, ...DOC_OPTIONS }).promise;
+    const images = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      toast(`Preparing to print… ${i} / ${doc.numPages}`);
+      const page = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 150 / 72 }); // 150 dpi
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvas, viewport, intent: "print", annotationMode: pdfjsLib.AnnotationMode.ENABLE_FORMS }).promise;
+      const blob = await new Promise((r) => canvas.toBlob(r, "image/png"));
+      const url = URL.createObjectURL(blob);
+      urls.push(url);
+      const img = new Image();
+      img.src = url;
+      images.push(img);
+      page.cleanup();
+    }
+    await doc.destroy();
+    container.replaceChildren(...images);
+    await Promise.all(images.map((img) => img.decode()));
+    $("#toast").hidden = true;
+    window.print();
+  } catch (err) {
+    console.error(err);
+    toast(`Couldn't print: ${err?.message || err}`);
+  } finally {
+    container.replaceChildren();
+    for (const u of urls) URL.revokeObjectURL(u);
+    printing = false;
+  }
+}
+$("#printBtn").addEventListener("click", printDocument);
 
 // ---------------------------------------------------------------------------
 // Regional formats: dates and amounts in form fields
@@ -773,13 +1019,7 @@ async function openFile(file, handle = null) {
   Object.assign(state, { doc: null, items: [], undo: [], selectedId: null, editingId: null, dirty: false });
   setTool("select");
 
-  const task = pdfjsLib.getDocument({
-    data,
-    BinaryDataFactory: BundledDataFactory,
-    useSystemFonts: false,
-    isEvalSupported: false,
-    enableXfa: false,
-  });
+  const task = pdfjsLib.getDocument({ data, ...DOC_OPTIONS });
   task.onPassword = (update, reason) => {
     const again = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
     const pw = prompt(again ? "Wrong password. Try again:" : "This PDF is password protected. Password:");
@@ -796,6 +1036,10 @@ async function openFile(file, handle = null) {
     document.body.classList.add("has-doc");
     viewer.setDocument(doc);
     linkService.setDocument(doc);
+    findController.setDocument(doc);
+    $("#findInput").value = "";
+    showFindCount();
+    loadOutline(doc);
     const fields = await doc.getFieldObjects();
     if (collectNumberFields(fields)) toast("This PDF has form fields: click a field to fill it.");
   } catch (err) {
@@ -861,27 +1105,35 @@ async function buildAnnotations() {
   return out;
 }
 
-async function save() {
-  if (!state.doc) return;
-  if (state.editingId) finishEditing(state.editingId);
-  const btn = $("#save");
-  btn.disabled = true;
+/** The PDF as Save writes it: form values plus the placed items as annotations. */
+async function buildOutputBytes() {
   const storage = state.doc.annotationStorage;
   const added = [];
-  let bytes;
   try {
     for (const [key, value] of await buildAnnotations()) {
       storage.setValue(key, value);
       added.push(key);
     }
-    bytes = await state.doc.saveDocument();
+    return await state.doc.saveDocument();
+  } finally {
+    // Keep the items as editable overlays; remove the temporary records.
+    for (const key of added) storage.remove(key);
+  }
+}
+
+async function save() {
+  if (!state.doc) return;
+  if (state.editingId) finishEditing(state.editingId);
+  const btn = $("#save");
+  btn.disabled = true;
+  let bytes;
+  try {
+    bytes = await buildOutputBytes();
   } catch (err) {
     console.error(err);
     toast(`Couldn't build the PDF: ${err?.message || err}`);
     return;
   } finally {
-    // Keep the items as editable overlays; remove the temporary records.
-    for (const key of added) storage.remove(key);
     btn.disabled = false;
   }
   const name = `${state.fileName.replace(/\.pdf$/i, "")} (${signedWord()}).pdf`;
