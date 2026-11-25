@@ -4,7 +4,8 @@
   "description": "Fill and sign PDFs. Offline, no ads, no bloat.",
   "scripts": {
     "build": "node build.mjs",
-    "build:app": "node build.mjs && node app/package.mjs"
+    "build:app": "node build.mjs && node app/package.mjs",
+    "build:app-macos": "node build.mjs && node app-macos/package.mjs"
   },
   "repository": {
     "type": "git",

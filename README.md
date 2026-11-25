@@ -17,10 +17,23 @@ On its start screen, **Install and make Paraphe my PDF app** copies it to
 (Windows doesn't let apps make themselves the default). Uninstall from
 Settings > Apps.
 
+**macOS app (beta).** On a Mac: `npm ci && npm run build:app-macos` (needs the
+Xcode command line tools) produces `dist/Paraphe.app` and
+`dist/Paraphe-<version>-macos.zip`, a universal (Apple silicon + Intel) app.
+Copy `Paraphe.app` anywhere (for example /Applications) and open it. The first
+time, right-click it and choose **Open**: the app is only ad-hoc signed, so
+macOS asks you to confirm it once. Sign with an Apple Developer ID and
+notarize before distributing beyond that. To open PDFs with Paraphe by
+default, click **Make Paraphe my PDF app** on its start screen, or use Finder
+> Get Info > Open with > "Use this application for all documents".
+
 **In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
 Edge, Chrome or Firefox (double-click works).
 
-Drop a PDF on the window, or press **Ctrl+O**.
+**In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
+Edge, Chrome or Firefox (double-click works).
+
+Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 
 | To | Do |
 |---|---|
@@ -33,7 +46,7 @@ Drop a PDF on the window, or press **Ctrl+O**.
 | Sign | **Sign**: draw, type or import a photo of your signature, then click where it goes. Signatures are kept in this browser for next time |
 | Move or resize | Drag an item, or its corner handle. Arrow keys nudge |
 | Undo / delete | **Ctrl+Z** / **Del** |
-| Save | **Ctrl+S** writes a copy named `… (signed).pdf`, in your region's language (`… (signé).pdf`) |
+| Save | **Ctrl+S** (⌘S on macOS) writes a copy named `… (signed).pdf`, in your region's language (`… (signé).pdf`) |
 
 ## Privacy
 
@@ -69,3 +82,8 @@ shows `web/paraphe.html` from a private `https://app.paraphe/` origin, passes
 files opened from Explorer to the page, saves through the native dialog, uses
 Windows' regional format for dates and amounts, and keeps its data in
 `%LOCALAPPDATA%\Paraphe`. `app/package.mjs` builds the folder and the zip.
+
+`app-macos/` is the macOS counterpart (Swift, AppKit + WKWebView, macOS 13+):
+same page over a private `app-paraphe://` origin, file open/save/print and the
+system's regional format through web messages. Printing goes through the host
+because WKWebView has no `window.print()`.
