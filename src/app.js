@@ -886,7 +886,16 @@ async function printDocument() {
     container.replaceChildren(...images);
     await Promise.all(images.map((img) => img.decode()));
     $("#toast").hidden = true;
-    window.print();
+    if (macHost) {
+      // WKWebView can't run window.print(): the app prints the prepared
+      // pages, then sends "print-done" so the normal view comes back.
+      await new Promise((resolve) => {
+        pendingPrint = resolve;
+        macHost.postMessage({ type: "print" });
+      });
+    } else {
+      window.print();
+    }
   } catch (err) {
     console.error(err);
     toast(`Couldn't print: ${err?.message || err}`);
@@ -1169,7 +1178,8 @@ async function save() {
 }
 
 async function writeFile(bytes, suggestedName) {
-  if (window.chrome?.webview) return hostSave(bytes, suggestedName);
+  // Both native apps (Windows and macOS) save through their own dialog.
+  if (host) return hostSave(bytes, suggestedName);
   if (window.showSaveFilePicker) {
     const options = {
       id: "paraphe-save",
@@ -1212,16 +1222,19 @@ function toast(msg) {
 }
 
 // ---------------------------------------------------------------------------
-// Windows app (WebView2 host)
+// Native app host (WebView2 on Windows, WKWebView on macOS)
 // ---------------------------------------------------------------------------
 
 // Asked by the app before its window closes.
 window.parapheIsDirty = () => state.dirty;
 
-const host = window.chrome?.webview;
+const winHost = window.chrome?.webview;
+const macHost = window.webkit?.messageHandlers?.paraphe;
+const host = winHost || macHost;
 let pendingSave = null;
+let pendingPrint = null;
 
-/** In the app, saving goes through the native Windows "Save as" dialog. */
+/** In the app, saving goes through the native "Save as" dialog. */
 function hostSave(bytes, suggestedName) {
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -1231,34 +1244,48 @@ function hostSave(bytes, suggestedName) {
   });
 }
 
+/** Messages from the native host: file open, save result, host info. */
+async function fromHost(msg, handle = null) {
+  if (msg.type === "open") {
+    // The file was opened from Explorer (a file handle) or from Finder
+    // (a private app-paraphe:// URL the host serves).
+    try {
+      if (handle?.getFile) return void (await openFile(await handle.getFile(), handle));
+      if (msg.url) {
+        const res = await fetch(msg.url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await openFile(new File([await res.blob()], msg.name || "document.pdf", { type: "application/pdf" }));
+      }
+    } catch (err) {
+      toast(`Couldn't open ${msg.name || "the file"}: ${err?.message || err}`);
+    }
+  } else if (msg.type === "saved" || msg.type === "save-cancelled" || msg.type === "save-failed") {
+    if (msg.type === "save-failed") toast(`Couldn't save: ${msg.error}`);
+    pendingSave?.(msg.type === "saved" ? msg.name : null);
+    pendingSave = null;
+  } else if (msg.type === "print-done") {
+    pendingPrint?.();
+    pendingPrint = null;
+  } else if (msg.type === "host") {
+    // Until the user picks a region, follow the system's regional format.
+    if (msg.locale) {
+      setSystemLocale(msg.locale);
+      renderFormats();
+    }
+    const b = $("#makeDefault");
+    b.hidden = false;
+    b.textContent = msg.installed ? "Make Paraphe my PDF app" : "Install and make Paraphe my PDF app";
+  }
+}
+
 if (host) {
   document.body.classList.add("in-app");
-  host.addEventListener("message", async (e) => {
-    const msg = e.data || {};
-    if (msg.type === "open") {
-      // Explorer opened a PDF with Paraphe: the app sends a file handle.
-      const handle = e.additionalObjects?.[0];
-      if (!handle?.getFile) return;
-      try {
-        openFile(await handle.getFile(), handle);
-      } catch (err) {
-        toast(`Couldn't open ${msg.name || "the file"}: ${err?.message || err}`);
-      }
-    } else if (msg.type === "saved" || msg.type === "save-cancelled" || msg.type === "save-failed") {
-      if (msg.type === "save-failed") toast(`Couldn't save: ${msg.error}`);
-      pendingSave?.(msg.type === "saved" ? msg.name : null);
-      pendingSave = null;
-    } else if (msg.type === "host") {
-      // Until the user picks a region, follow Windows' regional format.
-      if (msg.locale) {
-        setSystemLocale(msg.locale);
-        renderFormats();
-      }
-      const b = $("#makeDefault");
-      b.hidden = false;
-      b.textContent = msg.installed ? "Make Paraphe my PDF app" : "Install and make Paraphe my PDF app";
-    }
-  });
+  if (winHost) {
+    winHost.addEventListener("message", (e) => fromHost(e.data || {}, e.additionalObjects?.[0]));
+  } else if (macHost) {
+    // WKWebView hosts reply through an injected function.
+    window.__parapheMessage = (msg) => fromHost(msg || {});
+  }
   $("#makeDefault").addEventListener("click", () => host.postMessage({ type: "make-default" }));
   host.postMessage({ type: "ready" });
 }
