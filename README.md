@@ -33,7 +33,7 @@ Drop a PDF on the window, or press **Ctrl+O**.
 | Sign | **Sign**: draw, type or import a photo of your signature, then click where it goes. Signatures are kept in this browser for next time |
 | Move or resize | Drag an item, or its corner handle. Arrow keys nudge |
 | Undo / delete | **Ctrl+Z** / **Del** |
-| Save | **Ctrl+S** writes a copy named `… (signed).pdf` |
+| Save | **Ctrl+S** writes a copy named `… (signed).pdf`, in your region's language (`… (signé).pdf`) |
 
 ## Privacy
 

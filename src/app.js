@@ -6,7 +6,7 @@ import bundledFiles from "virtual:pdf-assets";
 import { chooseSignature } from "./signature.js";
 import {
   DATE_STYLES, formatDate, formatForField, formatValue, formats, numberSpecFromActions,
-  regionChoices, resetFormats, setFormats, setSystemLocale,
+  regionChoices, resetFormats, setFormats, setSystemLocale, signedWord,
 } from "./formats.js";
 
 const { AnnotationEditorType } = pdfjsLib;
@@ -884,7 +884,7 @@ async function save() {
     for (const key of added) storage.remove(key);
     btn.disabled = false;
   }
-  const name = state.fileName.replace(/\.pdf$/i, "") + " (signed).pdf";
+  const name = `${state.fileName.replace(/\.pdf$/i, "")} (${signedWord()}).pdf`;
   const saved = await writeFile(bytes, name);
   if (saved) {
     state.dirty = false;

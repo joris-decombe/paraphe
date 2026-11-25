@@ -89,6 +89,17 @@ function pdfSafe(s) {
   return s.replace(/[    ]/g, " ").replace(/−/g, "-");
 }
 
+// Word added to saved file names, by language: "contrat (signé).pdf".
+const SIGNED = {
+  en: "signed", fr: "signé", de: "unterschrieben", es: "firmado", it: "firmato",
+  pt: "assinado", nl: "ondertekend", ca: "signat", pl: "podpisany", sv: "signerad",
+  da: "underskrevet", nb: "signert", no: "signert", fi: "allekirjoitettu",
+};
+
+export function signedWord(locale = formats.locale) {
+  return SIGNED[locale.split("-")[0].toLowerCase()] ?? SIGNED.en;
+}
+
 export function formatDate(date = new Date(), style = formats.date, locale = formats.locale) {
   if (style === "iso") {
     const p = (n) => String(n).padStart(2, "0");
