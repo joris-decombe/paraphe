@@ -407,3 +407,9 @@ body:not(.has-doc) .toast { bottom: 24px; }
   --highlight-bg-color: rgb(35 64 176 / 0.16);
   --highlight-selected-bg-color: rgb(35 64 176 / 0.42);
 }
+
+@media (prefers-color-scheme: dark) {
+  /* Keep the black-ink swatch visible on the dark dock. */
+  .swatch { box-shadow: 0 0 0 1px #6b717c; }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+}
