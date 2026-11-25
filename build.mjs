@@ -85,6 +85,26 @@ const out = path.join(root, "dist", "paraphe.html");
 await writeFile(out, html);
 console.log(`Built ${path.relative(root, out)} (${(html.length / 1024 / 1024).toFixed(1)} MB)`);
 
+// Licenses of everything inlined above, taken from the files pdfjs-dist ships,
+// so they match the versions bundled. The app packages add their own parts.
+const { version: pdfjsVersion } = JSON.parse(await readFile(path.join(pdfjsDir, "package.json"), "utf8"));
+const notices = [
+  [`pdf.js ${pdfjsVersion} (Mozilla), https://github.com/mozilla/pdf.js`, ["LICENSE"]],
+  ["Foxit standard fonts (PDFium)", ["standard_fonts/LICENSE_FOXIT"]],
+  ["Liberation Sans fonts (Red Hat), unmodified; source: https://github.com/liberationfonts/liberation-fonts",
+    ["standard_fonts/LICENSE_LIBERATION"]],
+  ["OpenJPEG decoder (JPEG 2000), as compiled to WebAssembly by pdf.js",
+    ["wasm/LICENSE_OPENJPEG", "wasm/LICENSE_PDFJS_OPENJPEG"]],
+  ["JBIG2 decoder (PDFium), as compiled to WebAssembly by pdf.js", ["wasm/LICENSE_JBIG2", "wasm/LICENSE_PDFJS_JBIG2"]],
+  ["qcms colour management, as compiled to WebAssembly by pdf.js", ["wasm/LICENSE_QCMS", "wasm/LICENSE_PDFJS_QCMS"]],
+];
+let noticeText = `Paraphe includes the following third-party software.\n`;
+for (const [name, files] of notices) {
+  noticeText += `\n${"=".repeat(78)}\n${name}\n${"=".repeat(78)}\n`;
+  for (const f of files) noticeText += `\n${(await readFile(path.join(pdfjsDir, f), "utf8")).trim()}\n`;
+}
+await writeFile(path.join(root, "dist", "THIRD-PARTY-NOTICES.txt"), noticeText);
+
 // Test build: same page, but allowed to fetch fixtures from the local test server.
 if (process.argv.includes("--test")) {
   const testOut = path.join(root, "dist", "paraphe.test.html");

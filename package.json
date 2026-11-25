@@ -12,8 +12,8 @@
     "url": "git+https://github.com/joris-decombe/paraphe.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "Joris Decombe",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/joris-decombe/paraphe/issues"

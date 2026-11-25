@@ -37,6 +37,8 @@ await mkdir(path.join(contents, "Resources"), { recursive: true });
 await copyFile(bin, path.join(contents, "MacOS", "Paraphe"));
 await copyFile(path.join(pkgDir, "paraphe.icns"), path.join(contents, "Resources", "paraphe.icns"));
 await copyFile(path.join(dist, "paraphe.html"), path.join(contents, "Resources", "paraphe.html"));
+await copyFile(path.join(dist, "THIRD-PARTY-NOTICES.txt"), path.join(contents, "Resources", "THIRD-PARTY-NOTICES.txt"));
+await copyFile(path.join(root, "LICENSE"), path.join(contents, "Resources", "LICENSE.txt"));
 const plist = (await readFile(path.join(pkgDir, "Info.plist"), "utf8")).replaceAll("__VERSION__", version);
 await writeFile(path.join(contents, "Info.plist"), plist);
 await execFile("codesign", ["--force", "--deep", "-s", "-", app]);

@@ -68,6 +68,13 @@ in the browser's local storage only.
 - XFA-only forms and CJK text in added text boxes aren't supported.
 - This is a visual signature, not a cryptographic digital signature.
 
+## License
+
+MIT, see [LICENSE](LICENSE). The build bundles pdf.js (Apache-2.0), its
+standard fonts and image decoders, and on Windows the WebView2 SDK; their
+licenses are collected in `THIRD-PARTY-NOTICES.txt`, which `npm run build`
+writes to `dist/` and the app packages include.
+
 ## Develop
 
 `src/app.js` (viewer, tools, saving), `src/signature.js` (signature dialog),

@@ -45,6 +45,19 @@ Needs Windows 10 or 11 with the Microsoft Edge WebView2 Runtime (built into
 Windows 11).
 `.replace(/\n/g, "\r\n"));
 
+// The page's notices (from build.mjs), plus the WebView2 SDK DLLs shipped here.
+const csproj = await readFile(path.join(root, "app", "Paraphe.csproj"), "utf8");
+const wv2Version = csproj.match(/Include="Microsoft\.Web\.WebView2" Version="([^"]+)"/)[1];
+const nugetRoot = execFileSync("dotnet", ["nuget", "locals", "global-packages", "--list"], { encoding: "utf8" })
+  .replace(/^.*?global-packages:\s*/s, "").trim();
+const wv2Dir = path.join(nugetRoot, "microsoft.web.webview2", wv2Version);
+let notices = await readFile(path.join(dist, "THIRD-PARTY-NOTICES.txt"), "utf8");
+notices += `\n${"=".repeat(78)}\nMicrosoft Edge WebView2 SDK ${wv2Version} (Microsoft.Web.WebView2.Core.dll,\n` +
+  `Microsoft.Web.WebView2.WinForms.dll, WebView2Loader.dll)\n${"=".repeat(78)}\n`;
+for (const f of ["LICENSE.txt", "NOTICE.txt"]) notices += `\n${(await readFile(path.join(wv2Dir, f), "utf8")).trim()}\n`;
+await writeFile(path.join(out, "THIRD-PARTY-NOTICES.txt"), notices.replace(/\r?\n/g, "\r\n"));
+await copyFile(path.join(root, "LICENSE"), path.join(out, "LICENSE.txt"));
+
 await rm(zip, { force: true });
 execFileSync("powershell.exe", [
   "-NoProfile", "-Command",
