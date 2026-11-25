@@ -64,6 +64,10 @@ execFileSync("powershell.exe", [
   `Compress-Archive -Path '${out}' -DestinationPath '${zip}' -CompressionLevel Optimal`,
 ], { stdio: "inherit" });
 
+// Same zip under a version-free name, for a link that always gets the newest
+// release: https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip
+await copyFile(zip, path.join(dist, "Paraphe-win-x64.zip"));
+
 const files = (await readdir(out, { recursive: true })).sort();
 console.log(`Packaged ${path.relative(root, out)}:\n  ${files.join("\n  ")}`);
 console.log(`Zipped  ${path.relative(root, zip)}`);
