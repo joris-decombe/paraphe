@@ -63,6 +63,29 @@ button { font: inherit; color: inherit; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn.big { height: 44px; padding: 0 22px; font-size: 15px; }
 
+.tool.region { padding: 0 3px 0 7px; gap: 0; font-size: 11.5px; font-weight: 650; letter-spacing: 0.03em; color: var(--muted); }
+.tool.region .caret { width: 15px; height: 15px; }
+.pop-anchor { position: relative; display: inline-flex; }
+.popover {
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 70;
+  width: 270px; padding: 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.16); display: flex; flex-direction: column; gap: 6px;
+}
+.pop-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; margin-top: 6px; }
+.pop-row { display: flex; flex-direction: column; gap: 4px; }
+.pop-row .pop-label { margin-top: 0; }
+.popover select { height: 32px; border-radius: 7px; border: 1px solid var(--line); padding: 0 6px; font: inherit; background: #fff; }
+.choices { display: flex; flex-direction: column; gap: 2px; }
+.choice {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left;
+  border: 0; background: none; padding: 6px 8px; border-radius: 7px; cursor: pointer;
+}
+.choice:hover { background: #f4f2ee; }
+.choice[aria-checked="true"] { background: #eef1fb; color: var(--ink); font-weight: 600; }
+.choice small { color: var(--muted); font-weight: 400; font-size: 11.5px; }
+.preview { padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.popover .link-btn { align-self: flex-start; margin-top: 6px; }
+
 /* ---------- viewer ---------- */
 
 #viewerContainer { position: absolute; inset: var(--bar-h) 0 0 0; overflow: auto; }
@@ -118,6 +141,7 @@ body.has-doc .empty { display: none; }
 .empty-card h1 { margin: 6px 0 4px; font-size: 22px; letter-spacing: -0.01em; }
 .empty-card p { margin: 0 0 16px; color: var(--muted); }
 .empty-card .fine { margin: 18px 0 0; font-size: 12.5px; }
+.empty-card .make-default { margin-top: 14px; font-size: 13px; }
 .empty-mark { width: 64px; height: 64px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .drop-veil {

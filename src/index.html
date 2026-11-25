@@ -37,6 +37,23 @@
     <button class="tool" data-tool="date" title="Today's date" aria-label="Date">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
     </button>
+    <span class="pop-anchor">
+      <button id="formatsBtn" class="tool region" title="Date and number format" aria-haspopup="dialog" aria-expanded="false">
+        <span id="regionLabel">EN</span>
+        <svg viewBox="0 0 24 24" class="caret"><path d="m7 10 5 5 5-5"/></svg>
+      </button>
+      <div id="formatsPop" class="popover" role="dialog" aria-label="Date and number format" hidden>
+        <label class="pop-row">
+          <span class="pop-label">Region</span>
+          <select id="regionSelect"></select>
+        </label>
+        <div class="pop-label">Date</div>
+        <div id="dateStyles" class="choices" role="radiogroup"></div>
+        <div class="pop-label">Amounts in form fields</div>
+        <div id="numberPreview" class="preview"></div>
+        <button id="formatsReset" type="button" class="link-btn">Follow system setting</button>
+      </div>
+    </span>
     <button class="tool sign" data-tool="sign" title="Add your signature">
       <svg viewBox="0 0 24 24"><path d="M3 17c2.5-.5 3-7 5.5-7S8 17 10.5 17s2-3.5 4-3.5.5 3 3.5 2.5M3 21h18"/></svg>
       <span>Sign</span>
@@ -87,6 +104,7 @@
     <p>Drop a file anywhere, or</p>
     <button id="emptyOpen" class="btn primary big">Open a PDF</button>
     <p class="fine">Everything happens on this computer. Files are never uploaded.</p>
+    <button id="makeDefault" type="button" class="link-btn make-default" hidden></button>
   </div>
 </section>
 

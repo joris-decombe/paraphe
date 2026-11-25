@@ -6,9 +6,21 @@ Fill and sign PDFs. One HTML file, offline, no ads, no account, no bloat.
 
 ## Use it
 
-1. `npm ci && npm run build`
-2. Open `dist/paraphe.html` in Edge, Chrome or Firefox (double-click works).
-3. Drop a PDF on the window, or press **Ctrl+O**.
+**Windows app.** `npm ci && npm run build:app` (needs the .NET SDK) produces
+`dist/Paraphe/` and `dist/Paraphe-<version>-win-x64.zip`. Extract the zip
+anywhere and run `Paraphe.exe`: no install, no admin rights. It runs on the
+.NET Framework and WebView2 that come with Windows 11.
+
+On its start screen, **Install and make Paraphe my PDF app** copies it to
+`%LOCALAPPDATA%\Programs\Paraphe`, adds it to the Start menu and to
+**Open with**, then opens Windows Settings where you pick it for `.pdf`
+(Windows doesn't let apps make themselves the default). Uninstall from
+Settings > Apps.
+
+**In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
+Edge, Chrome or Firefox (double-click works).
+
+Drop a PDF on the window, or press **Ctrl+O**.
 
 | To | Do |
 |---|---|
@@ -16,6 +28,8 @@ Fill and sign PDFs. One HTML file, offline, no ads, no account, no bloat.
 | Write anywhere | **Text** tool, click, type. Double-click to edit later |
 | Tick a box | **✓** or **✗** tool, click each box, **Esc** when done |
 | Add today's date | **Date** tool, click |
+| Change date or number style | The region button next to **Date** (e.g. `FR`): region, and short, long or ISO dates. It starts from your browser's language |
+| Fill an amount | Type it any way (`1234,5`, `1,234.50`). Fields the form marks as amounts or percentages are rewritten in your region's style, e.g. `1 234,50 €` |
 | Sign | **Sign**: draw, type or import a photo of your signature, then click where it goes. Signatures are kept in this browser for next time |
 | Move or resize | Drag an item, or its corner handle. Arrow keys nudge |
 | Undo / delete | **Ctrl+Z** / **Del** |
@@ -49,3 +63,9 @@ in the browser's local storage only.
 `src/app.js` (viewer, tools, saving), `src/signature.js` (signature dialog),
 `src/app.css`, `src/index.html`. `npm run build -- --test` also writes
 `dist/paraphe.test.html`, which may fetch fixtures from a local server.
+
+`app/` is the Windows host (C#, WinForms + WebView2, .NET Framework 4.8): it
+shows `web/paraphe.html` from a private `https://app.paraphe/` origin, passes
+files opened from Explorer to the page, saves through the native dialog, uses
+Windows' regional format for dates and amounts, and keeps its data in
+`%LOCALAPPDATA%\Paraphe`. `app/package.mjs` builds the folder and the zip.

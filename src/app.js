@@ -4,6 +4,10 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import "./app.css";
 import bundledFiles from "virtual:pdf-assets";
 import { chooseSignature } from "./signature.js";
+import {
+  DATE_STYLES, formatDate, formatForField, formatValue, formats, numberSpecFromActions,
+  regionChoices, resetFormats, setFormats, setSystemLocale,
+} from "./formats.js";
 
 const { AnnotationEditorType } = pdfjsLib;
 
@@ -303,7 +307,7 @@ function onOverlayPointerDown(e, pageIndex) {
     case "text":
     case "date": {
       const size = state.textSize;
-      const text = state.tool === "date" ? new Date().toLocaleDateString() : "";
+      const text = state.tool === "date" ? formatDate() : "";
       item = { ...base, type: "text", size, text, x: p.x - 1, y: p.y - (LINE_FACTOR * size) / 2 };
       break;
     }
@@ -494,8 +498,25 @@ $("#delete").addEventListener("click", deleteSelected);
 $("#undo").addEventListener("click", undo);
 $("#zoomIn").addEventListener("click", () => viewer.increaseScale());
 $("#zoomOut").addEventListener("click", () => viewer.decreaseScale());
-$("#open").addEventListener("click", () => $("#fileInput").click());
-$("#emptyOpen").addEventListener("click", () => $("#fileInput").click());
+/** Prefer the File System Access picker: its handle lets Save start in the PDF's own folder. */
+async function chooseFile() {
+  if (!window.showOpenFilePicker) {
+    $("#fileInput").click();
+    return;
+  }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      id: "paraphe-open",
+      types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
+    });
+    openFile(await handle.getFile(), handle);
+  } catch (err) {
+    if (err?.name !== "AbortError") $("#fileInput").click();
+  }
+}
+
+$("#open").addEventListener("click", chooseFile);
+$("#emptyOpen").addEventListener("click", chooseFile);
 $("#fileInput").addEventListener("change", (e) => {
   const f = e.target.files[0];
   e.target.value = "";
@@ -520,7 +541,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (mod && e.key.toLowerCase() === "o") {
     e.preventDefault();
-    $("#fileInput").click();
+    chooseFile();
     return;
   }
   if (mod && (e.key === "=" || e.key === "+")) {
@@ -571,9 +592,17 @@ window.addEventListener("dragleave", (e) => {
 window.addEventListener("drop", (e) => {
   e.preventDefault();
   document.body.classList.remove("dragging");
-  const f = [...(e.dataTransfer?.files || [])].find((x) => x.type === "application/pdf" || /\.pdf$/i.test(x.name));
-  if (f) openFile(f);
-  else if (e.dataTransfer?.files.length) toast("That isn't a PDF.");
+  const isPdf = (x) => x && (x.type === "application/pdf" || /\.pdf$/i.test(x.name));
+  const items = [...(e.dataTransfer?.items || [])].filter((i) => i.kind === "file");
+  const index = items.findIndex((i) => isPdf(i.getAsFile()));
+  if (index < 0) {
+    if (items.length) toast("That isn't a PDF.");
+    return;
+  }
+  // The handle must be requested during the drop event itself.
+  const file = items[index].getAsFile();
+  const handlePromise = items[index].getAsFileSystemHandle?.() ?? Promise.resolve(null);
+  handlePromise.catch(() => null).then((handle) => openFile(file, handle?.kind === "file" ? handle : null));
 });
 
 window.addEventListener("beforeunload", (e) => {
@@ -601,11 +630,140 @@ eventBus.on("scalechanging", ({ scale }) => {
 });
 
 // ---------------------------------------------------------------------------
+// Regional formats: dates and amounts in form fields
+// ---------------------------------------------------------------------------
+
+/** Widget id -> number format declared by the form (amounts, percentages). */
+const numberFields = new Map();
+
+function collectNumberFields(fields) {
+  numberFields.clear();
+  // pdf.js returns a Map of field name -> widgets (older versions: a plain object).
+  const groups = fields instanceof Map ? [...fields.values()] : Object.values(fields || {});
+  for (const widgets of groups) {
+    for (const w of widgets) {
+      if (w.type !== "text" || !w.id) continue;
+      const spec = numberSpecFromActions(w.actions);
+      if (spec) numberFields.set(w.id, spec);
+    }
+  }
+  for (const el of document.querySelectorAll(".annotationLayer input[data-element-id]")) {
+    if (numberInput(el)) el.inputMode = "decimal";
+  }
+  return groups.length;
+}
+
+function numberInput(el) {
+  return el?.matches?.(".annotationLayer input[data-element-id]") && numberFields.has(el.dataset.elementId) ? el : null;
+}
+
+// Reformat an amount when the field loses focus. pdf.js stores `formattedValue`
+// for the field's appearance and keeps `value` as the plain number.
+document.addEventListener("focusout", (e) => {
+  const el = numberInput(e.target);
+  if (!el || !state.doc) return;
+  const id = el.dataset.elementId;
+  const text = el.value.trim();
+  const storage = state.doc.annotationStorage;
+  if (!text) {
+    storage.setValue(id, { value: "", formattedValue: null });
+    return;
+  }
+  const out = formatForField(text, numberFields.get(id));
+  if (!out) return; // not a number: leave what was typed
+  el.value = out.formatted;
+  storage.setValue(id, { value: out.value, formattedValue: out.formatted });
+});
+
+eventBus.on("annotationlayerrendered", () => {
+  for (const el of document.querySelectorAll(".annotationLayer input[data-element-id]")) {
+    if (numberInput(el)) el.inputMode = "decimal";
+  }
+});
+
+/** After the region changes, redo amounts already typed. */
+function reformatNumberFields() {
+  if (!state.doc) return;
+  const storage = state.doc.annotationStorage;
+  for (const [id, spec] of numberFields) {
+    const entry = storage.getRawValue(id);
+    if (!entry?.formattedValue || entry.value === "") continue;
+    const n = Number(entry.value) * (spec.kind === "percent" ? 100 : 1);
+    if (!Number.isFinite(n)) continue;
+    const out = formatValue(n, spec);
+    storage.setValue(id, { formattedValue: out.formatted });
+    const el = document.querySelector(`.annotationLayer input[data-element-id="${CSS.escape(id)}"]`);
+    if (el && el !== document.activeElement) el.value = out.formatted;
+  }
+}
+
+function renderFormats() {
+  $("#regionLabel").textContent = formats.locale.split("-")[0].toUpperCase();
+  const select = $("#regionSelect");
+  select.replaceChildren(
+    ...regionChoices().map(({ tag, label }) => new Option(`${label} · ${tag}`, tag, false, tag === formats.locale)),
+  );
+  const labels = { numeric: "Short", long: "Long", iso: "ISO" };
+  $("#dateStyles").replaceChildren(
+    ...DATE_STYLES.map((style) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "choice";
+      b.role = "radio";
+      b.setAttribute("aria-checked", String(style === formats.date));
+      b.innerHTML = `<span></span><small></small>`;
+      b.firstChild.textContent = formatDate(new Date(), style);
+      b.lastChild.textContent = labels[style];
+      b.onclick = () => {
+        setFormats({ date: style });
+        renderFormats();
+      };
+      return b;
+    }),
+  );
+  $("#numberPreview").textContent = formatValue(1234.5, { kind: "number", decimals: 2, grouping: true, currency: "", prepend: false }).formatted;
+  $("#formatsReset").hidden = formats.auto;
+}
+
+function toggleFormats(open = $("#formatsPop").hidden) {
+  $("#formatsPop").hidden = !open;
+  $("#formatsBtn").setAttribute("aria-expanded", String(open));
+  if (open) renderFormats();
+}
+
+$("#formatsBtn").addEventListener("click", () => toggleFormats());
+$("#regionSelect").addEventListener("change", (e) => {
+  setFormats({ locale: e.target.value });
+  renderFormats();
+  reformatNumberFields();
+});
+$("#formatsReset").addEventListener("click", () => {
+  resetFormats();
+  renderFormats();
+  reformatNumberFields();
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!$("#formatsPop").hidden && !e.target.closest(".pop-anchor")) toggleFormats(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#formatsPop").hidden) {
+    toggleFormats(false);
+    e.stopImmediatePropagation();
+  }
+}, true);
+renderFormats();
+
+// ---------------------------------------------------------------------------
 // Open
 // ---------------------------------------------------------------------------
 
-async function openFile(file) {
+/**
+ * @param {File} file
+ * @param {FileSystemFileHandle|null} handle  Where the file came from, when known.
+ */
+async function openFile(file, handle = null) {
   if (state.dirty && !confirm("You have unsaved changes. Open another file anyway?")) return;
+  state.fileHandle = handle;
   const data = new Uint8Array(await file.arrayBuffer());
   if (state.loadingTask) await state.loadingTask.destroy();
   for (const ov of overlays.values()) ov.remove();
@@ -639,7 +797,7 @@ async function openFile(file) {
     viewer.setDocument(doc);
     linkService.setDocument(doc);
     const fields = await doc.getFieldObjects();
-    if (fields && Object.keys(fields).length) toast("This PDF has form fields: click a field to fill it.");
+    if (collectNumberFields(fields)) toast("This PDF has form fields: click a field to fill it.");
   } catch (err) {
     if (err?.name === "PasswordException") return;
     console.error(err);
@@ -736,19 +894,26 @@ async function save() {
 }
 
 async function writeFile(bytes, suggestedName) {
+  if (window.chrome?.webview) return hostSave(bytes, suggestedName);
   if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName,
-        types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
-      });
-      const w = await handle.createWritable();
-      await w.write(bytes);
-      await w.close();
-      return handle.name;
-    } catch (err) {
-      if (err?.name === "AbortError") return null;
-      console.warn("Save picker failed, downloading instead", err);
+    const options = {
+      id: "paraphe-save",
+      suggestedName,
+      types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
+    };
+    // Start in the original PDF's folder when we know it.
+    const attempts = state.fileHandle ? [{ ...options, startIn: state.fileHandle }, options] : [options];
+    for (const opts of attempts) {
+      try {
+        const handle = await window.showSaveFilePicker(opts);
+        const w = await handle.createWritable();
+        await w.write(bytes);
+        await w.close();
+        return handle.name;
+      } catch (err) {
+        if (err?.name === "AbortError") return null;
+        console.warn("Save picker failed", err);
+      }
     }
   }
   const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
@@ -769,6 +934,58 @@ function toast(msg) {
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), 4000);
+}
+
+// ---------------------------------------------------------------------------
+// Windows app (WebView2 host)
+// ---------------------------------------------------------------------------
+
+// Asked by the app before its window closes.
+window.parapheIsDirty = () => state.dirty;
+
+const host = window.chrome?.webview;
+let pendingSave = null;
+
+/** In the app, saving goes through the native Windows "Save as" dialog. */
+function hostSave(bytes, suggestedName) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return new Promise((resolve) => {
+    pendingSave = resolve;
+    host.postMessage({ type: "save", name: suggestedName, data: btoa(binary) });
+  });
+}
+
+if (host) {
+  document.body.classList.add("in-app");
+  host.addEventListener("message", async (e) => {
+    const msg = e.data || {};
+    if (msg.type === "open") {
+      // Explorer opened a PDF with Paraphe: the app sends a file handle.
+      const handle = e.additionalObjects?.[0];
+      if (!handle?.getFile) return;
+      try {
+        openFile(await handle.getFile(), handle);
+      } catch (err) {
+        toast(`Couldn't open ${msg.name || "the file"}: ${err?.message || err}`);
+      }
+    } else if (msg.type === "saved" || msg.type === "save-cancelled" || msg.type === "save-failed") {
+      if (msg.type === "save-failed") toast(`Couldn't save: ${msg.error}`);
+      pendingSave?.(msg.type === "saved" ? msg.name : null);
+      pendingSave = null;
+    } else if (msg.type === "host") {
+      // Until the user picks a region, follow Windows' regional format.
+      if (msg.locale) {
+        setSystemLocale(msg.locale);
+        renderFormats();
+      }
+      const b = $("#makeDefault");
+      b.hidden = false;
+      b.textContent = msg.installed ? "Make Paraphe my PDF app" : "Install and make Paraphe my PDF app";
+    }
+  });
+  $("#makeDefault").addEventListener("click", () => host.postMessage({ type: "make-default" }));
+  host.postMessage({ type: "ready" });
 }
 
 // Exposed for automated tests only.
