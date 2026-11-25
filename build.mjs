@@ -32,18 +32,42 @@ const pdfAssets = {
   },
 };
 
+// The pdf.js worker, built on its own and embedded as a string (see src/pdfjs.js).
+const target = ["chrome120", "firefox128", "safari17"];
+const worker = await esbuild.build({
+  entryPoints: [path.join(pdfjsDir, "build", "pdf.worker.mjs")],
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  target,
+  minify: true,
+  legalComments: "eof",
+  write: false,
+  logLevel: "warning",
+});
+const workerSource = {
+  name: "pdf-worker-source",
+  setup(b) {
+    b.onResolve({ filter: /^virtual:pdf-worker-source$/ }, (a) => ({ path: a.path, namespace: "pdf-worker-source" }));
+    b.onLoad({ filter: /.*/, namespace: "pdf-worker-source" }, () => ({
+      contents: `export default ${JSON.stringify(worker.outputFiles[0].text)};`,
+      loader: "js",
+    }));
+  },
+};
+
 const result = await esbuild.build({
   entryPoints: [path.join(root, "src", "app.js")],
   bundle: true,
   format: "esm",
   platform: "browser",
-  target: ["chrome120", "firefox128", "safari17"],
+  target,
   minify: true,
   legalComments: "eof",
   write: false,
   outdir: path.join(root, "dist"),
   loader: { ".pfb": "binary", ".ttf": "binary", ".wasm": "binary", ".svg": "dataurl", ".gif": "dataurl", ".png": "dataurl" },
-  plugins: [pdfAssets],
+  plugins: [pdfAssets, workerSource],
   logLevel: "warning",
 });
 
