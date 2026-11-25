@@ -222,7 +222,6 @@ body:not([data-tool="select"]) .pp-overlay { pointer-events: auto; cursor: cross
 body[data-tool="text"] .pp-overlay, body[data-tool="date"] .pp-overlay { cursor: text; }
 
 .pp-item { position: absolute; pointer-events: auto; cursor: move; touch-action: none; }
-body:not([data-tool="select"]) .pp-item { pointer-events: none; }
 .pp-item::after {
   content: ""; position: absolute; inset: -3px; border-radius: 3px; pointer-events: none;
   outline: 1px dashed transparent;
@@ -413,3 +412,37 @@ body:not(.has-doc) .toast { bottom: 24px; }
   .swatch { box-shadow: 0 0 0 1px #6b717c; }
   .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 }
+
+/* ---------- app only: install, settings, updates ---------- */
+
+.install-card {
+  margin: 26px auto 0; max-width: 30rem; display: flex; align-items: center; gap: 14px; text-align: left;
+  padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface);
+  border: 1px solid var(--ink-ring); box-shadow: 0 0 0 4px var(--ink-soft);
+}
+.install-card > svg { flex: none; width: 30px; height: 30px; fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.install-card div { flex: 1; display: grid; gap: 2px; }
+.install-card strong { font-size: 15px; }
+.install-card span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+#emptySettings { margin-top: 14px; }
+
+.settings-dialog { width: min(560px, calc(100vw - 32px)); }
+.set-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.set-row h3 { margin: 0 0 4px; font-size: 14px; color: var(--text); }
+.set-row p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.set-row .btn { flex: none; }
+.set-row .btn.danger { color: var(--danger); }
+.check-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; font-size: 14px; cursor: pointer; }
+.check-row input { width: 16px; height: 16px; accent-color: var(--ink); }
+.set-status:empty { display: none; }
+.set-status { color: var(--text) !important; }
+.set-foot { color: var(--muted); font-size: 12.5px; padding-top: 4px; }
+
+.update-bar {
+  position: fixed; z-index: 80; top: calc(var(--bar-h) + 10px); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 24px);
+  padding: 8px 8px 8px 16px; border-radius: var(--r-md); background: var(--surface);
+  border: 1px solid var(--line); box-shadow: var(--shadow-float); font-size: 13.5px;
+}
+.update-actions { display: flex; gap: 6px; flex: none; }
+.update-bar .btn { height: 30px; padding: 0 12px; }

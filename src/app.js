@@ -367,8 +367,11 @@ function onOverlayPointerDown(e, pageIndex) {
   updateChrome();
 }
 
+// Items move and resize under any tool: grabbing one never places another
+// (stopPropagation keeps the overlay from seeing the press), and the tool
+// stays on for the next click on empty space.
 function onItemPointerDown(e, id, onHandle) {
-  if (state.tool !== "select" || e.button !== 0) return;
+  if (e.button !== 0) return;
   if (state.editingId === id && !onHandle) return; // let the caret move
   e.preventDefault();
   e.stopPropagation();
@@ -1272,9 +1275,123 @@ async function fromHost(msg, handle = null) {
       setSystemLocale(msg.locale);
       renderFormats();
     }
-    const b = $("#makeDefault");
-    b.hidden = false;
-    b.textContent = msg.installed ? "Make Paraphe my PDF app" : "Install and make Paraphe my PDF app";
+    hostInfo = msg;
+    if (msg.features?.includes("updates")) {
+      // Windows: install, default app, updates and uninstall live in Settings.
+      $("#makeDefault").hidden = true;
+      $("#installCard").hidden = !!(msg.installed || msg.registered);
+      $("#settingsBtn").hidden = false;
+      $("#emptySettings").hidden = false;
+      renderSettings();
+      if (msg.updates === "ask") askAboutUpdates();
+    } else {
+      const b = $("#makeDefault");
+      b.hidden = false;
+      b.textContent = msg.installed ? "Make Paraphe my PDF app" : "Install and make Paraphe my PDF app";
+    }
+  } else if (msg.type === "update") {
+    onUpdate(msg);
+  }
+}
+
+/* ---------- settings and updates (Windows app) ---------- */
+
+let hostInfo = {};
+
+function renderSettings() {
+  $("#autoUpdates").checked = hostInfo.updates === "on";
+  $("#setDefault").hidden = !!hostInfo.isDefault;
+  $("#defaultText").textContent = hostInfo.isDefault
+    ? "Paraphe opens your PDFs."
+    : `${hostInfo.defaultApp ? `PDFs open in ${hostInfo.defaultApp}.` : "PDFs open in another app."} ` +
+      "Windows shows a list of apps: choose Paraphe, then Always.";
+  $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();
+  const btn = $("#setInstallBtn");
+  if (hostInfo.installed || hostInfo.registered) {
+    $("#installText").textContent = hostInfo.installed
+      ? "Paraphe is installed for your account. Uninstalling removes it from the Start menu, Open with and Settings > Apps."
+      : "Paraphe is installed for your account, and this is a separate copy. Uninstalling removes the installed one.";
+    btn.textContent = "Uninstall…";
+    btn.className = "btn danger";
+    btn.dataset.act = "uninstall";
+  } else {
+    $("#installText").textContent = "Adds Paraphe to the Start menu and to Open with for PDFs. No admin rights needed.";
+    btn.textContent = "Install";
+    btn.className = "btn primary";
+    btn.dataset.act = "install";
+  }
+}
+
+/** The update bar: a message and up to three buttons, or hidden. */
+function updateBar(text, actions = []) {
+  const bar = $("#updateBar");
+  bar.hidden = !text;
+  bar.querySelector(".update-text").textContent = text || "";
+  const box = bar.querySelector(".update-actions");
+  box.replaceChildren(...actions.map(([label, fn, primary]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = primary ? "btn primary" : "btn ghost";
+    b.textContent = label;
+    b.addEventListener("click", fn);
+    return b;
+  }));
+}
+
+function setUpdatesMode(mode) {
+  hostInfo.updates = mode;
+  host.postMessage({ type: "updates-mode", mode });
+  renderSettings();
+}
+
+function askAboutUpdates() {
+  updateBar("Check for updates automatically? Paraphe would ask GitHub once a day. Nothing about your documents is sent.", [
+    ["Yes, check", () => { updateBar(null); setUpdatesMode("on"); }, true],
+    ["No", () => { updateBar(null); setUpdatesMode("off"); }],
+  ]);
+}
+
+function onUpdate(msg) {
+  const status = (t) => { $("#updateStatus").textContent = t; };
+  const later = () => updateBar(null);
+  switch (msg.state) {
+    case "checking":
+      status("Checking…");
+      break;
+    case "none":
+      status(`You have the latest version (${msg.version}).`);
+      break;
+    case "available":
+      status(`Version ${msg.version} is available.`);
+      updateBar(`Paraphe ${msg.version} is available.`, [
+        ["Update", () => host.postMessage({ type: "update-download" }), true],
+        ["Later", later],
+        ["Skip this version", () => { host.postMessage({ type: "update-skip", version: msg.version }); later(); }],
+      ]);
+      break;
+    case "manual":
+      // This copy's folder isn't writable (e.g. Program Files): download by hand.
+      status(`Version ${msg.version} is available.`);
+      updateBar(`Paraphe ${msg.version} is available.`, [
+        ["Download", () => { window.open("https://github.com/joris-decombe/paraphe/releases/latest"); later(); }, true],
+        ["Later", later],
+      ]);
+      break;
+    case "downloading":
+      status(`Downloading version ${msg.version}…`);
+      updateBar(`Downloading Paraphe ${msg.version}…`);
+      break;
+    case "ready":
+      status(`Version ${msg.version} is ready. It installs when you close Paraphe.`);
+      updateBar(`Paraphe ${msg.version} is ready. It installs when you close Paraphe.`, [
+        ["Restart now", () => host.postMessage({ type: "update-restart" }), true],
+        ["Later", later],
+      ]);
+      break;
+    case "error":
+      status(`Couldn't update: ${msg.error}`);
+      if (!msg.manual) updateBar(`Couldn't update: ${msg.error}`, [["OK", later]]);
+      break;
   }
 }
 
@@ -1287,6 +1404,22 @@ if (host) {
     window.__parapheMessage = (msg) => fromHost(msg || {});
   }
   $("#makeDefault").addEventListener("click", () => host.postMessage({ type: "make-default" }));
+  const openSettings = () => { renderSettings(); $("#settingsDialog").showModal(); };
+  $("#settingsBtn").addEventListener("click", openSettings);
+  $("#emptySettings").addEventListener("click", openSettings);
+  $("#installBtn").addEventListener("click", () => host.postMessage({ type: "install" }));
+  $("#setDefault").addEventListener("click", () => host.postMessage({ type: "default-app" }));
+  $("#checkNow").addEventListener("click", () => host.postMessage({ type: "update-check" }));
+  $("#autoUpdates").addEventListener("change", (e) => {
+    if (hostInfo.updates === "ask") updateBar(null);
+    setUpdatesMode(e.target.checked ? "on" : "off");
+  });
+  $("#setInstallBtn").addEventListener("click", (e) => {
+    if (e.currentTarget.dataset.act === "install") return void host.postMessage({ type: "install" });
+    if (state.dirty && !confirm("You have unsaved changes. Uninstall and close anyway?")) return;
+    $("#settingsDialog").close();
+    host.postMessage({ type: "uninstall" });
+  });
   host.postMessage({ type: "ready" });
 }
 

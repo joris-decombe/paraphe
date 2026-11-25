@@ -63,9 +63,18 @@
         <svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg>
       </button>
     </div>
+    <button id="settingsBtn" class="tool" title="Settings" aria-label="Settings" hidden>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" stroke-width="2.8" stroke-dasharray="2.6 3.84" stroke-linecap="butt"/><circle cx="12" cy="12" r="6.2"/><circle cx="12" cy="12" r="2.3"/></svg>
+    </button>
     <button id="save" class="btn primary" title="Save a copy (Ctrl+S)">Save</button>
   </div>
 </header>
+
+<!-- Updates: the first-launch question, then news of a new version -->
+<div id="updateBar" class="update-bar" role="status" hidden>
+  <span class="update-text"></span>
+  <span class="update-actions"></span>
+</div>
 
 <!-- Signing: tools that put ink on the page -->
 <div class="dock" role="toolbar" aria-label="Fill and sign">
@@ -155,8 +164,50 @@
     <button id="emptyOpen" class="btn primary big">Open a PDF</button>
     <p class="fine">Your files stay on this computer. Nothing is uploaded, ever.</p>
     <button id="makeDefault" type="button" class="link-btn make-default" hidden></button>
+    <div id="installCard" class="install-card" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.5 10 12 14.5l4.5-4.5M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/></svg>
+      <div>
+        <strong>Install Paraphe</strong>
+        <span>Adds it to the Start menu and lets you open your PDFs with it. No admin rights needed.</span>
+      </div>
+      <button id="installBtn" type="button" class="btn primary">Install</button>
+    </div>
+    <button id="emptySettings" type="button" class="link-btn" hidden>Settings</button>
   </div>
 </section>
+
+<dialog id="settingsDialog" class="sig-dialog settings-dialog">
+  <form method="dialog" class="sig-card">
+    <header class="sig-head">
+      <h2>Settings</h2>
+      <button type="submit" class="icon-btn" aria-label="Close">✕</button>
+    </header>
+    <section class="set-row">
+      <div>
+        <h3>Default PDF app</h3>
+        <p id="defaultText"></p>
+      </div>
+      <button type="button" id="setDefault" class="btn">Make Paraphe the default</button>
+    </section>
+    <section class="set-row">
+      <div>
+        <h3>Updates</h3>
+        <label class="check-row"><input type="checkbox" id="autoUpdates"> Check for updates automatically</label>
+        <p>Once a day, Paraphe asks GitHub whether there's a new version. Nothing about your documents is sent. Updates are installed only if they carry Paraphe's signature.</p>
+        <p id="updateStatus" class="set-status" aria-live="polite"></p>
+      </div>
+      <button type="button" id="checkNow" class="btn">Check now</button>
+    </section>
+    <section class="set-row" id="setInstall">
+      <div>
+        <h3>Install</h3>
+        <p id="installText"></p>
+      </div>
+      <button type="button" id="setInstallBtn" class="btn"></button>
+    </section>
+    <footer class="set-foot"><span id="setVersion"></span></footer>
+  </form>
+</dialog>
 
 <div class="drop-veil"><span>Drop to open</span></div>
 <div id="hint" class="hint-pill" hidden></div>

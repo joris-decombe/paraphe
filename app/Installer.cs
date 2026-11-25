@@ -31,6 +31,12 @@ namespace Paraphe
         public static bool IsRunningInstalled =>
             string.Equals(Path.GetFullPath(AppDir), Path.GetFullPath(InstallDir), StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>Whether Paraphe is listed in Settings > Apps (installed by any copy).</summary>
+        public static bool IsRegistered
+        {
+            get { using (var k = Registry.CurrentUser.OpenSubKey(UninstallKey)) return k != null; }
+        }
+
         /// <summary>Install (or refresh) and register. Returns the installed exe path.</summary>
         public static string Install()
         {
@@ -51,11 +57,12 @@ namespace Paraphe
             return exe;
         }
 
-        public static void Uninstall()
+        /// <summary>Asks, then removes Paraphe. Returns false if the user said no.</summary>
+        public static bool Uninstall(IWin32Window owner = null)
         {
-            var answer = MessageBox.Show("Remove Paraphe from this computer?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (answer != DialogResult.Yes) return;
-            bool wipeData = MessageBox.Show("Also delete your saved signatures and settings?", AppName,
+            var answer = MessageBox.Show(owner, "Remove Paraphe from this computer?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (answer != DialogResult.Yes) return false;
+            bool wipeData = MessageBox.Show(owner, "Also delete your saved signatures and settings?", AppName,
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
 
             Unregister();
@@ -74,12 +81,91 @@ namespace Paraphe
                     WorkingDirectory = Path.GetTempPath(),
                 });
             }
-            MessageBox.Show("Paraphe has been removed.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(owner, IsRunningInstalled || !Directory.Exists(AppDir)
+                    ? "Paraphe has been removed."
+                    : $"Paraphe has been removed from Windows. This copy stays in:\n{AppDir}\n\nDelete that folder to remove it completely.",
+                AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return true;
         }
 
         public static void OpenDefaultAppsSettings()
         {
             Process.Start(new ProcessStartInfo("ms-settings:defaultapps?registeredAppUser=" + AppName) { UseShellExecute = true });
+        }
+
+        /// <summary>What Windows itself would use to open a .pdf (falls back like Explorer does).</summary>
+        private static string AssocString(int what)
+        {
+            uint size = 0;
+            if (AssocQueryString(ASSOCF_NOTRUNCATE, what, ".pdf", "open", null, ref size) != 1 /* S_FALSE */ || size == 0) return null;
+            var sb = new System.Text.StringBuilder((int)size);
+            return AssocQueryString(ASSOCF_NOTRUNCATE, what, ".pdf", "open", sb, ref size) == 0 ? sb.ToString() : null;
+        }
+
+        public static bool IsDefaultPdfApp =>
+            string.Equals(Path.GetFileName(AssocString(ASSOCSTR_EXECUTABLE) ?? ""), "Paraphe.exe", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>A readable name for the app that opens PDFs now, or null if unknown.</summary>
+        public static string DefaultPdfAppName() => IsDefaultPdfApp ? AppName : AssocString(ASSOCSTR_FRIENDLYAPPNAME);
+
+        private const int ASSOCF_NOTRUNCATE = 0x20;
+        private const int ASSOCSTR_EXECUTABLE = 2;
+        private const int ASSOCSTR_FRIENDLYAPPNAME = 4;
+
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        private static extern int AssocQueryString(int flags, int str, string assoc, string extra, System.Text.StringBuilder outBuf, ref uint outLen);
+
+        /// <summary>
+        /// Windows' own "Select an app to open this .pdf file" picker, the one
+        /// Explorer shows. Picking Paraphe, then Always, makes it the default
+        /// (Windows doesn't let an app set itself as the default: the user's
+        /// click is what counts). The picker opens the file with the app chosen,
+        /// so the file is a one-page note saying it worked. Non-blocking.
+        /// </summary>
+        public static void ShowPdfAppPicker()
+        {
+            try
+            {
+                string dir = Path.Combine(Path.GetTempPath(), "Paraphe");
+                Directory.CreateDirectory(dir);
+                string file = Path.Combine(dir, "Your PDF app.pdf");
+                File.WriteAllBytes(file, NoticePdf("This PDF opened in the app you picked.",
+                    "If that's Paraphe and you chose Always, Paraphe now opens your PDFs.",
+                    "You can close this document."));
+                Process.Start(new ProcessStartInfo("rundll32.exe", $"shell32.dll,OpenAs_RunDLL {file}") { UseShellExecute = false });
+            }
+            catch
+            {
+                OpenDefaultAppsSettings();
+            }
+        }
+
+        /// <summary>A minimal one-page PDF with a few lines of Helvetica.</summary>
+        private static byte[] NoticePdf(params string[] lines)
+        {
+            var text = new System.Text.StringBuilder("BT /F1 16 Tf 72 760 Td 22 TL\n");
+            foreach (string l in lines) text.Append('(').Append(l.Replace("\\", "\\\\").Replace("(", @"\(").Replace(")", @"\)")).Append(") Tj T*\n");
+            text.Append("ET");
+            string[] objs =
+            {
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+                $"<< /Length {text.Length} >>\nstream\n{text}\nendstream",
+                "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            };
+            var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+            var offsets = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < objs.Length; i++)
+            {
+                offsets.Add(pdf.Length);
+                pdf.Append($"{i + 1} 0 obj\n{objs[i]}\nendobj\n");
+            }
+            int xref = pdf.Length;
+            pdf.Append($"xref\n0 {objs.Length + 1}\n0000000000 65535 f \n");
+            foreach (int o in offsets) pdf.Append($"{o:D10} 00000 n \n");
+            pdf.Append($"trailer\n<< /Size {objs.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+            return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
         }
 
         private static void Register(string exe)

@@ -11,11 +11,20 @@ Fill and sign PDFs. One HTML file, offline, no ads, no account, no bloat.
 anywhere and run `Paraphe.exe`: no install, no admin rights. It runs on the
 .NET Framework and WebView2 that come with Windows 11.
 
-On its start screen, **Install and make Paraphe my PDF app** copies it to
-`%LOCALAPPDATA%\Programs\Paraphe`, adds it to the Start menu and to
-**Open with**, then opens Windows Settings where you pick it for `.pdf`
-(Windows doesn't let apps make themselves the default). Uninstall from
-Settings > Apps.
+On its start screen, **Install** copies it to `%LOCALAPPDATA%\Programs\Paraphe`
+and adds it to the Start menu and to **Open with**. **Settings** (the gear in
+the toolbar) has the rest:
+
+- **Make Paraphe the default** shows Windows' own "Open with" list for PDFs:
+  pick Paraphe, then **Always** (Windows doesn't let apps make themselves the
+  default). The panel says which app opens your PDFs now.
+- **Updates**: on first launch Paraphe asks whether to check for updates. If
+  you say yes, it asks GitHub once a day for the latest release's
+  `update.json`, and installs an update only if it carries Paraphe's release
+  signature (ECDSA P-256, checked against the public key built into the app).
+  The new version goes in when you close or restart Paraphe.
+- **Uninstall** (also in Windows Settings > Apps), optionally with your saved
+  signatures and settings.
 
 **macOS app (beta).** On a Mac: `npm ci && npm run build:app-macos` (needs the
 Xcode command line tools) produces `dist/Paraphe.app` and
@@ -33,11 +42,16 @@ Either way the page runs entirely on your computer.
 
 ## Release
 
-1. Raise `version` in `package.json`, then `npm run build:app`.
-2. `gh release create v<version> dist/Paraphe-<version>-win-x64.zip
-   dist/Paraphe-win-x64.zip`: the version-free copy keeps
-   `releases/latest/download/Paraphe-win-x64.zip` pointing at the newest build.
-3. Update https://paraphe.dx2-66.com: `npm run build:site` writes `dist/site/`,
+1. Raise `version` in `package.json`, then `npm run build:app`. It also writes
+   `dist/update.json`, which the updater reads.
+2. `node tools/sign-update.mjs` signs it with the release key (kept outside
+   the repo, by default `%USERPROFILE%\.paraphe\release-signing-key.pem`;
+   `node tools/keygen.mjs` made it once) and writes `dist/update.json.sig`.
+3. `gh release create v<version> dist/Paraphe-<version>-win-x64.zip
+   dist/Paraphe-win-x64.zip dist/update.json dist/update.json.sig`: the
+   version-free zip keeps `releases/latest/download/Paraphe-win-x64.zip`
+   pointing at the newest build, and installed copies find the update.
+4. Update https://paraphe.dx2-66.com: `npm run build:site` writes `dist/site/`,
    the showcase pages (`site/`, English and French) with the web app at
    `/app/`. Replace `apps/paraphe/` in the dx2-66 repo with its contents and
    open a pull request there. Merging it deploys the site.
@@ -63,6 +77,11 @@ The page has a Content-Security-Policy that forbids every network request, so
 your documents and signatures cannot leave the computer. Saved signatures live
 in the browser's local storage only.
 
+The Windows app makes one kind of request, and only if you say yes: once a day
+it fetches `update.json` and its signature from GitHub, and downloads the zip
+when you choose to update. Those requests carry your IP address and a generic
+`Paraphe-Updater` user agent, nothing about your documents.
+
 ## How it works
 
 - [pdf.js](https://github.com/mozilla/pdf.js) renders pages and form fields and
@@ -76,7 +95,8 @@ in the browser's local storage only.
 
 ## Limits
 
-- Form scripts (auto-calculated totals, formatting) don't run.
+- Form scripts (auto-calculated totals, formatting) don't run. That's on
+  purpose: scripts in PDFs are a common way to attack PDF readers.
 - XFA-only forms and CJK text in added text boxes aren't supported.
 - This is a visual signature, not a cryptographic digital signature.
 
