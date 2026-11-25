@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node build.mjs",
     "build:app": "node build.mjs && node app/package.mjs",
-    "build:app-macos": "node build.mjs && node app-macos/package.mjs"
+    "build:app-macos": "node build.mjs && node app-macos/package.mjs",
+    "build:site": "node build.mjs && node site/build.mjs"
   },
   "repository": {
     "type": "git",

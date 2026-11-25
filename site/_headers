@@ -1,0 +1,23 @@
+# Response headers for paraphe.dx2-66.com (Cloudflare Workers static assets).
+# https://developers.cloudflare.com/workers/static-assets/headers/
+
+# The showcase pages: no scripts at all, styles and images from this origin only.
+/*
+  Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: accelerometer=(), autoplay=(), browsing-topics=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  X-Frame-Options: DENY
+
+# The web app: one self-contained file (dist/paraphe.html). It carries its own
+# CSP in a <meta> tag; this repeats it and adds frame-ancestors, which a <meta>
+# CSP can't set. pdf.js needs inline scripts, its worker and decoders started
+# from blob: URLs, and WebAssembly. connect-src allows only data: and blob:,
+# so a document can never leave the browser. Browsers enforce every CSP they
+# receive, so the showcase policy above is detached first.
+/app/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; img-src data: blob:; font-src data: blob:; connect-src data: blob:; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
