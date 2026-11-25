@@ -27,6 +27,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The release signing key's public half (tools/keygen.mjs). Updates
+         signed by any other key are refused. -->
+    <EmbeddedResource Include="update-public-key.txt" LogicalName="Paraphe.update-public-key.txt" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">

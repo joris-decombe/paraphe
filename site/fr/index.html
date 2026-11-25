@@ -135,8 +135,9 @@
       <h2>Vos documents restent sur votre ordinateur</h2>
       <p>Les formulaires qu'on signe sont pleins de choses qu'on ne veut pas voir sur le serveur de quelqu'un d'autre&nbsp;: une adresse, un RIB, une signature. Paraphe n'envoie rien, nulle part.</p>
       <ul class="facts">
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Un PDF peut contenir des scripts, une façon courante d'attaquer les lecteurs de PDF. Paraphe ne les exécute jamais.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>La politique de sécurité de la page bloque toutes les requêtes réseau, donc un document ne peut pas quitter votre ordinateur, même par erreur.</span></li>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Pas de compte, pas de statistiques, pas de recherche de mises à jour en arrière-plan.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Pas de compte et pas de statistiques. L'appli Windows demande votre accord avant de chercher des mises à jour. Si vous dites oui, elle interroge GitHub une fois par jour, et n'installe une mise à jour que si elle porte la signature de Paraphe.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Les signatures que vous enregistrez restent sur votre ordinateur.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>La version navigateur marche pareil&nbsp;: ce site envoie la page, et tout le reste se passe sur votre ordinateur.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Le code source est <a href="https://github.com/joris-decombe/paraphe">sur GitHub</a> sous licence MIT, donc tout le monde peut vérifier.</span></li>
@@ -156,7 +157,7 @@
             <li>Lancez <code>Paraphe.exe</code>. Rien à installer, pas besoin des droits d'administrateur.</li>
           </ol>
           <p class="note">Windows affiche un avertissement la première fois, parce que l'appli n'est pas signée avec un certificat payant. Cliquez sur <strong>Informations complémentaires</strong>, puis sur <strong>Exécuter quand même</strong>.</p>
-          <p class="note">Pour ouvrir tous vos PDF avec Paraphe, cliquez sur <strong>Install and make Paraphe my PDF app</strong> sur son écran d'accueil, puis choisissez-le dans les paramètres Windows qui s'ouvrent.</p>
+          <p class="note">Pour le garder, cliquez sur <strong>Install</strong> sur son écran d'accueil. Pour ouvrir tous vos PDF avec, ouvrez <strong>Settings</strong> (la roue dentée) et cliquez sur <strong>Make Paraphe the default</strong>. C'est aussi là qu'on le désinstalle.</p>
         </div>
         <div class="side">
           <div>

@@ -64,6 +64,19 @@ execFileSync("powershell.exe", [
   `Compress-Archive -Path '${out}' -DestinationPath '${zip}' -CompressionLevel Optimal`,
 ], { stdio: "inherit" });
 
+// What the updater reads (app/Updater.cs). Sign it before releasing:
+// node tools/sign-update.mjs, which writes update.json.sig next to it.
+const { createHash } = await import("node:crypto");
+const zipBytes = await readFile(zip);
+await writeFile(path.join(dist, "update.json"), JSON.stringify({
+  app: "paraphe-windows",
+  version,
+  file: path.basename(zip),
+  size: zipBytes.length,
+  sha256: createHash("sha256").update(zipBytes).digest("hex"),
+}, null, 2) + "\n");
+await rm(path.join(dist, "update.json.sig"), { force: true });
+
 // Same zip under a version-free name, for a link that always gets the newest
 // release: https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip
 await copyFile(zip, path.join(dist, "Paraphe-win-x64.zip"));

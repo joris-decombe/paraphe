@@ -25,6 +25,9 @@ namespace Paraphe
         private string _pendingFile;
         private string _currentDir;
         private bool _closeConfirmed;
+        private bool _restartAfterUpdate;
+        private Updater.Release _available;
+        private bool _busy;
 
         public MainForm(string file, bool devTools)
         {
@@ -62,6 +65,12 @@ namespace Paraphe
             {
                 Fail("Paraphe needs the Microsoft Edge WebView2 Runtime, which comes with Windows 11.\n\n" +
                      "Install it from https://developer.microsoft.com/microsoft-edge/webview2/ and start Paraphe again.");
+                return;
+            }
+            catch (Exception ex)
+            {
+                // E.g. another Paraphe window started with different browser options.
+                Fail("Paraphe couldn't start its viewer: " + ex.Message + "\n\nClose other Paraphe windows and try again.");
                 return;
             }
 
@@ -131,11 +140,170 @@ namespace Paraphe
                         OpenInPage(_pendingFile);
                         _pendingFile = null;
                     }
+                    var s = Updater.Load();
+                    if (s.Updates == "on" && DateTime.UtcNow - s.LastCheck > TimeSpan.FromDays(1)) _ = CheckForUpdate(false);
                     break;
                 case "make-default":
                     MakeDefault();
                     break;
+                case "install":
+                    InstallOnly();
+                    break;
+                case "default-app":
+                    ChooseDefaultApp();
+                    break;
+                case "uninstall":
+                    if (Installer.Uninstall(this))
+                    {
+                        _closeConfirmed = true;
+                        Close();
+                    }
+                    else PostHostInfo();
+                    break;
+                case "updates-mode":
+                    SetUpdatesMode(msg["mode"] as string);
+                    break;
+                case "update-check":
+                    _ = CheckForUpdate(true);
+                    break;
+                case "update-download":
+                    _ = DownloadUpdate();
+                    break;
+                case "update-skip":
+                    var skip = Updater.Load();
+                    skip.Skip = msg["version"] as string;
+                    Updater.Save(skip);
+                    break;
+                case "update-restart":
+                    _restartAfterUpdate = true;
+                    Close();
+                    break;
             }
+        }
+
+        // ---------- updates ----------
+
+        private void PostUpdate(string state, string version = null, string error = null, bool manual = false) =>
+            Reply(new Dictionary<string, object>
+            {
+                ["type"] = "update",
+                ["state"] = state,
+                ["version"] = version,
+                ["error"] = error,
+                ["manual"] = manual,
+            });
+
+        private void SetUpdatesMode(string mode)
+        {
+            if (mode != "on" && mode != "off") return;
+            var s = Updater.Load();
+            s.Updates = mode;
+            Updater.Save(s);
+            PostHostInfo();
+            if (mode == "on" && DateTime.UtcNow - s.LastCheck > TimeSpan.FromDays(1)) _ = CheckForUpdate(false);
+        }
+
+        /// <summary>One request for the signed update description.</summary>
+        private async Task CheckForUpdate(bool manual)
+        {
+            if (_busy) return;
+            if (Updater.Staged != null)
+            {
+                PostUpdate("ready", Updater.StagedVersion, manual: manual);
+                return;
+            }
+            _busy = true;
+            if (manual) PostUpdate("checking", manual: true);
+            try
+            {
+                var release = await Updater.CheckAsync();
+                var s = Updater.Load();
+                s.LastCheck = DateTime.UtcNow;
+                Updater.Save(s);
+                _available = release;
+                if (release == null) PostUpdate("none", Updater.CurrentText, manual: manual);
+                else if (!manual && release.Version == s.Skip) { /* the user skipped this one */ }
+                else PostUpdate(Updater.CanApply() ? "available" : "manual", release.Version, manual: manual);
+            }
+            catch (Exception ex)
+            {
+                // Automatic checks fail quietly (offline, GitHub down); a manual one says why.
+                if (manual) PostUpdate("error", error: ex.Message, manual: true);
+            }
+            finally
+            {
+                _busy = false;
+            }
+        }
+
+        private async Task DownloadUpdate()
+        {
+            if (_busy || _available == null) return;
+            _busy = true;
+            PostUpdate("downloading", _available.Version);
+            try
+            {
+                await Updater.DownloadAsync(_available);
+                PostUpdate("ready", _available.Version);
+            }
+            catch (Exception ex)
+            {
+                PostUpdate("error", _available.Version, ex.Message);
+            }
+            finally
+            {
+                _busy = false;
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            base.OnFormClosed(e);
+            // A downloaded update goes in when Paraphe closes, or right away on "Restart".
+            if (Updater.Staged != null && Updater.Apply() && _restartAfterUpdate) Updater.Restart();
+        }
+
+        // ---------- install, default app ----------
+
+        private void InstallOnly()
+        {
+            try
+            {
+                string exe = Installer.Install();
+                PostHostInfo();
+                string moved = string.Equals(exe, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase)
+                    ? ""
+                    : $"\n\nIt was copied to {Path.GetDirectoryName(exe)}. You can delete the folder you extracted it to.";
+                MessageBox.Show(this, "Paraphe is installed. It's in the Start menu, and in Open with for PDFs." + moved,
+                    "Paraphe", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Couldn't install Paraphe: " + ex.Message, "Paraphe", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>Windows lets only the user pick the default app: show its picker.</summary>
+        private void ChooseDefaultApp()
+        {
+            // Paraphe has to be registered to appear in the picker.
+            if (!Installer.IsRegistered)
+            {
+                try { Installer.Install(); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "Couldn't install Paraphe: " + ex.Message, "Paraphe", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            Installer.ShowPdfAppPicker();
+        }
+
+        // Back from the picker (or Windows Settings): show whether it worked.
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            if (_web.CoreWebView2 != null) PostHostInfo();
         }
 
         private void PostHostInfo()
@@ -143,8 +311,13 @@ namespace Paraphe
             var info = new Dictionary<string, object>
             {
                 ["type"] = "host",
-                ["version"] = Application.ProductVersion,
+                ["version"] = Updater.CurrentText,
                 ["installed"] = Installer.IsRunningInstalled,
+                ["registered"] = Installer.IsRegistered,
+                ["isDefault"] = Installer.IsDefaultPdfApp,
+                ["defaultApp"] = Installer.DefaultPdfAppName(),
+                ["updates"] = Updater.Load().Updates,
+                ["features"] = new[] { "install", "default-app", "uninstall", "updates" },
                 // Windows "Regional format" (dates, numbers), which can differ
                 // from the display language the web view reports.
                 ["locale"] = System.Globalization.CultureInfo.CurrentCulture.Name,
