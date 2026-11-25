@@ -17,8 +17,9 @@ let scheme = "app-paraphe"
 // ---------------------------------------------------------------------------
 
 /// Serves the app's one HTML page under app-paraphe://start, and PDFs that the
-/// user opened under app-paraphe://open/<token>. Tokens are random strings, so
-/// a compromised page cannot read arbitrary files from disk.
+/// user opened under app-paraphe://start/open/<token>. Files live on the same
+/// origin as the page, so its fetch() needs no CORS. Tokens are random and
+/// work once, so a compromised page cannot read arbitrary files from disk.
 final class SchemeHandler: NSObject, WKURLSchemeHandler {
     private let html: Data
     private var files: [String: URL] = [:]
@@ -39,14 +40,17 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
         guard let url = task.request.url, url.scheme == scheme else {
             return deny(task, 403)
         }
-        if url.host == "start" {
-            guard url.path == "/paraphe.html" else { return deny(task, 404) }
+        guard url.host == "start" else { return deny(task, 404) }
+        if url.path == "/paraphe.html" {
             send(task, url: url, data: html, mime: "text/html", encoding: "utf-8")
-        } else if url.host == "open" {
-            let token = String(url.path.dropFirst())
-            let file = queue.sync { files[token] }
-            guard let file, file.isFileURL else { return deny(task, 404) }
-            let data = (try? Data(contentsOf: file, options: .mappedIfSafe)) ?? Data()
+        } else if url.path.hasPrefix("/open/") {
+            let token = String(url.path.dropFirst("/open/".count))
+            // One use per token: forget the file once it has been handed over.
+            let file = queue.sync { files.removeValue(forKey: token) }
+            guard let file, file.isFileURL,
+                  let data = try? Data(contentsOf: file, options: .mappedIfSafe) else {
+                return deny(task, 404)
+            }
             send(task, url: url, data: data, mime: "application/pdf", encoding: nil)
         } else {
             deny(task, 404)
@@ -85,16 +89,17 @@ final class MessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
+        guard let body = message.body as? [String: Any], let type = body["type"] as? String,
+              let webView = message.webView else { return }
         switch type {
         case "ready":
-            app?.pageDidSendReady(webView: message.webView)
+            app?.pageDidSendReady(webView: webView)
         case "save":
-            app?.saveRequested(name: body["name"] as? String, data: body["data"] as? String, webView: message.webView)
+            app?.saveRequested(name: body["name"] as? String, data: body["data"] as? String, webView: webView)
         case "make-default":
             app?.makeDefault()
         case "print":
-            app?.printRequested(webView: message.webView)
+            app?.printRequested(webView: webView)
         default:
             break
         }
@@ -173,7 +178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
-    private func pageDidSendReady(webView: WKWebView) {
+    fileprivate func pageDidSendReady(webView: WKWebView) {
         pageReady = true
         let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? ""
         let locale = Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
@@ -185,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard pageReady, let file = pendingFile, let web else { return }
         pendingFile = nil
         let token = handler?.token(for: file) ?? UUID().uuidString
-        toPage(web, ["type": "open", "name": file.lastPathComponent, "url": "\(scheme)://open/\(token)"])
+        toPage(web, ["type": "open", "name": file.lastPathComponent, "url": "\(scheme)://start/open/\(token)"])
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
     }
@@ -196,7 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Native "Save as", starting next to the PDF that was opened.
-    private func saveRequested(name: String?, data: String?, webView: WKWebView) {
+    fileprivate func saveRequested(name: String?, data: String?, webView: WKWebView) {
         guard let base64 = data, let bytes = Data(base64Encoded: base64) else {
             return toPage(webView, ["type": "save-failed", "error": "The file could not be read."])
         }
@@ -228,27 +233,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// WKWebView does not implement window.print(), so the page sends its
     /// prepared print view here; when the panel closes the page is restored.
-    private func printRequested(webView: WKWebView) {
+    fileprivate func printRequested(webView: WKWebView) {
         let info = (NSPrintInfo.shared.copy() as? NSPrintInfo) ?? NSPrintInfo(dictionary: [:])
-        guard let window, let operation = webView.printOperation(with: info) else {
+        guard let window else {
             return toPage(webView, ["type": "print-done"])
         }
+        let operation = webView.printOperation(with: info)
         operation.showsPrintPanel = true
         operation.showsProgressPanel = true
-        let printView = operation.view
-        printView?.frame = NSRect(origin: .zero, size: info.paperSize)
+        operation.view?.frame = NSRect(origin: .zero, size: info.paperSize)
         let didRun = #selector(printOperationDidRun(_:success:contextInfo:))
-        operation.runModal(for: window, delegate: self, didRun: didRun, contextInfo: Unmanaged.passUnretained(webView).toOpaque())
+        operation.runModal(for: window, delegate: self, didRun: didRun, contextInfo: nil)
     }
 
     @objc private func printOperationDidRun(_ printOperation: NSPrintOperation, success: Bool, contextInfo: UnsafeMutableRawPointer?) {
-        let webView = Unmanaged<WKWebView>.fromOpaque(contextInfo).takeUnretainedValue()
-        toPage(webView, ["type": "print-done"])
+        if let web {
+            toPage(web, ["type": "print-done"])
+        }
+    }
+
+    /// File > Open (Cmd+O). WebKit only opens a file chooser on a real click,
+    /// so the menu shows the native panel and hands the file over like Finder.
+    @objc private func openPDF(_ sender: Any?) {
+        guard let window else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.pdf]
+        panel.directoryURL = currentDir
+        panel.beginSheetModal(for: window) { [self] response in
+            guard response == .OK, let file = panel.url else { return }
+            currentDir = file.deletingLastPathComponent()
+            pendingFile = file
+            flushPendingFile()
+        }
     }
 
     /// macOS decides default apps itself; this registers Paraphe and explains
     /// what to check if it did not take effect.
-    private func makeDefault() {
+    fileprivate func makeDefault() {
         let bundleID = Bundle.main.bundleIdentifier ?? "app.paraphe"
         LSSetDefaultRoleHandlerForContentType("com.adobe.pdf" as CFString, .all, bundleID as CFString)
         let alert = NSAlert()
@@ -308,7 +332,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let fileRoot = NSMenuItem()
         main.addItem(fileRoot)
         let fileMenu = NSMenu(title: "File")
-        fileMenu.addItem(item("Open…", key: "o", action: #selector(sendKeyO(_:))))
+        fileMenu.addItem(item("Open…", key: "o", action: #selector(openPDF(_:))))
         fileMenu.addItem(item("Save…", key: "s", action: #selector(sendKeyS(_:))))
         fileMenu.addItem(item("Print…", key: "p", action: #selector(sendKeyP(_:))))
         fileMenu.addItem(.separator())
@@ -345,9 +369,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }
 
-    /// Menu shortcuts for tools that live in the page (Open, Save, Print,
-    /// Undo): forward them as Cmd keydowns so the page handles them once.
-    @objc private func sendKeyO(_ sender: NSMenuItem) { sendKey("o") }
+    /// Menu shortcuts for tools that live in the page (Save, Print, Undo):
+    /// forward them as Cmd keydowns so the page handles them once.
     @objc private func sendKeyS(_ sender: NSMenuItem) { sendKey("s") }
     @objc private func sendKeyP(_ sender: NSMenuItem) { sendKey("p") }
     @objc private func sendUndo(_ sender: NSMenuItem) { sendZ(shift: false) }

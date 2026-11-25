@@ -1178,7 +1178,8 @@ async function save() {
 }
 
 async function writeFile(bytes, suggestedName) {
-  if (window.chrome?.webview) return hostSave(bytes, suggestedName);
+  // Both native apps (Windows and macOS) save through their own dialog.
+  if (host) return hostSave(bytes, suggestedName);
   if (window.showSaveFilePicker) {
     const options = {
       id: "paraphe-save",

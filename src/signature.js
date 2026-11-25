@@ -362,7 +362,9 @@ export function chooseSignature() {
       }
       if ($(".keep").checked) {
         const saved = loadSaved();
-        saved.unshift({ id: crypto.randomUUID(), src, created: Date.now() });
+        // randomUUID needs a secure context, which a custom app scheme may not be.
+        const id = crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        saved.unshift({ id, src, created: Date.now() });
         storeSaved(saved.slice(0, 8));
       }
       done(src);

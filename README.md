@@ -30,9 +30,6 @@ default, click **Make Paraphe my PDF app** on its start screen, or use Finder
 **In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
 Edge, Chrome or Firefox (double-click works).
 
-**In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
-Edge, Chrome or Firefox (double-click works).
-
 Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 
 | To | Do |

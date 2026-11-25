@@ -3,7 +3,8 @@
 //   dist/Paraphe-<version>-macos.zip   the same bundle, zipped
 // Run `node build.mjs` first so dist/paraphe.html is current. Needs macOS:
 // the Swift toolchain (Xcode command line tools) and ditto/codesign.
-import { execFileSync, existsSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,7 +41,12 @@ const plist = (await readFile(path.join(pkgDir, "Info.plist"), "utf8")).replaceA
 await writeFile(path.join(contents, "Info.plist"), plist);
 await execFile("codesign", ["--force", "--deep", "-s", "-", app]);
 
-await writeFile(path.join(dist, "Paraphe-README.txt"), `Paraphe ${version}: fill and sign PDFs
+// ditto archives one source, so stage the app and its README in one folder.
+const stage = path.join(dist, `Paraphe-${version}-macos`);
+await rm(stage, { recursive: true, force: true });
+await mkdir(stage, { recursive: true });
+await execFile("ditto", [app, path.join(stage, "Paraphe.app")]);
+await writeFile(path.join(stage, "README.txt"), `Paraphe ${version}: fill and sign PDFs
 
 Copy Paraphe.app anywhere (for example /Applications) and open it. The first
 time, right-click it and choose Open: the app isn't signed with an Apple
@@ -53,8 +59,8 @@ Needs macOS 13 or newer (Apple silicon or Intel).
 `);
 
 await rm(zip, { force: true });
-await execFile("ditto", ["-c", "-k", "--keepParent", app, "--keepParent", path.join(dist, "Paraphe-README.txt"), zip]);
-await rm(path.join(dist, "Paraphe-README.txt"), { force: true });
+await execFile("ditto", ["-c", "-k", "--keepParent", stage, zip]);
+await rm(stage, { recursive: true, force: true });
 
 console.log(`Packaged ${path.relative(root, app)}`);
 console.log(`Zipped  ${path.relative(root, zip)}`);
