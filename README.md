@@ -27,8 +27,19 @@ notarize before distributing beyond that. To open PDFs with Paraphe by
 default, click **Make Paraphe my PDF app** on its start screen, or use Finder
 > Get Info > Open with > "Use this application for all documents".
 
-**In a browser.** `npm ci && npm run build`, then open `dist/paraphe.html` in
-Edge, Chrome or Firefox (double-click works).
+**In a browser.** Open https://paraphe.dx2-66.com, or `npm ci && npm run build`
+and open `dist/paraphe.html` in Edge, Chrome or Firefox (double-click works).
+Either way the page runs entirely on your computer.
+
+## Release
+
+1. Raise `version` in `package.json`, then `npm run build:app`.
+2. `gh release create v<version> dist/Paraphe-<version>-win-x64.zip
+   dist/Paraphe-win-x64.zip`: the version-free copy keeps
+   `releases/latest/download/Paraphe-win-x64.zip` pointing at the newest build.
+3. Update the web app: copy `dist/paraphe.html` over `apps/paraphe/index.html`
+   in the dx2-66 repo and open a pull request there. Merging it deploys
+   https://paraphe.dx2-66.com.
 
 Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 
