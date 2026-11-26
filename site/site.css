@@ -4,24 +4,24 @@
 
 :root {
   /* The app's default Orange theme. */
-  --desk: #f2d1c3;
-  --desk-2: #ecc4b2;
+  --desk: #f3b49c;
+  --desk-2: #eba68c;
   --paper: #ffffff;
-  --ink: #8f3a03;           /* deeper than the app's, to read on the desk */
-  --ink-strong: #712d02;
-  --ink-soft: rgb(143 58 3 / 0.09);
+  --ink: #6b2a02;           /* deeper than the app's, to read on the gradient */
+  --ink-strong: #521f01;
+  --ink-soft: rgb(107 42 2 / 0.1);
   --on-ink: #ffffff;
-  --text: #2c1e18;
-  --muted: #5e4840;
-  --rule: #dcb7a6;
+  --text: #24170f;
+  --muted: #4a362e;
+  --rule: #d9977d;
   --field: #feede6;
   /* Sunrise over the desk: apricot top left, rose top right, warm sand at the
      bottom. Every stop keeps text, links and muted text above 4.5:1. */
   --glow:
-    radial-gradient(70rem 45rem at 8% -6%, #ffd6a8 0%, transparent 65%),
-    radial-gradient(60rem 50rem at 104% 8%, #f7b9c7 0%, transparent 62%),
-    radial-gradient(80rem 60rem at 45% 104%, #f9c09e 0%, transparent 65%),
-    linear-gradient(180deg, #f6d5c3, #f1c9bd 55%, #f2cdb8);
+    radial-gradient(70rem 45rem at 8% -6%, #f7b98a 0%, transparent 65%),
+    radial-gradient(60rem 50rem at 104% 8%, #ee9db2 0%, transparent 62%),
+    radial-gradient(80rem 60rem at 45% 104%, #f2a985 0%, transparent 65%),
+    linear-gradient(180deg, #f3b49c, #efb39b 55%, #f0ad94);
   --sheet-shadow: 0 1px 2px rgb(60 25 10 / 0.12), 0 18px 50px rgb(60 25 10 / 0.18);
   /* On the sheet, which stays white in both modes. */
   --sheet-ink: #af4803;
