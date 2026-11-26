@@ -1349,19 +1349,16 @@ function renderSettings() {
   $("#autoUpdates").checked = hostInfo.updates === "on";
   $("#setDefault").hidden = !!hostInfo.isDefault;
   $("#defaultText").textContent = hostInfo.isDefault
-    ? "Paraphe opens your PDFs."
-    : `${hostInfo.defaultApp ? `PDFs open in ${hostInfo.defaultApp}.` : "PDFs open in another app."} ` +
-      "Windows shows a list of apps: choose Paraphe, then Always.";
+    ? "Your PDFs open in Paraphe."
+    : `Your PDFs open in ${hostInfo.defaultApp || "another app"}.`;
   const btn = $("#setInstallBtn");
   if (hostInfo.installed || hostInfo.registered) {
-    $("#installText").textContent = hostInfo.installed
-      ? "Paraphe is installed for your account. Uninstalling removes it from the Start menu, Open with and Settings > Apps."
-      : "Paraphe is installed for your account, and this is a separate copy. Uninstalling removes the installed one.";
+    $("#installText").textContent = "Paraphe is installed.";
     btn.textContent = "Uninstall…";
     btn.className = "btn danger";
     btn.dataset.act = "uninstall";
   } else {
-    $("#installText").textContent = "Adds Paraphe to the Start menu and to Open with for PDFs. No admin rights needed.";
+    $("#installText").textContent = "Add Paraphe to the Start menu.";
     btn.textContent = "Install";
     btn.className = "btn primary";
     btn.dataset.act = "install";
@@ -1391,8 +1388,8 @@ function setUpdatesMode(mode) {
 }
 
 function askAboutUpdates() {
-  updateBar("Check for updates automatically? Paraphe would ask GitHub once a day. Nothing about your documents is sent.", [
-    ["Yes, check", () => { updateBar(null); setUpdatesMode("on"); }, true],
+  updateBar("Keep Paraphe up to date automatically?", [
+    ["Yes", () => { updateBar(null); setUpdatesMode("on"); }, true],
     ["No", () => { updateBar(null); setUpdatesMode("off"); }],
   ]);
 }
@@ -1405,11 +1402,11 @@ function onUpdate(msg) {
       status("Checking…");
       break;
     case "none":
-      status(`You have the latest version (${msg.version}).`);
+      status("Paraphe is up to date.");
       break;
     case "available":
-      status(`Version ${msg.version} is available.`);
-      updateBar(`Paraphe ${msg.version} is available.`, [
+      status("A new version is available.");
+      updateBar("A new version of Paraphe is available.", [
         ["Update", () => host.postMessage({ type: "update-download" }), true],
         ["Later", later],
         ["Skip this version", () => { host.postMessage({ type: "update-skip", version: msg.version }); later(); }],
@@ -1417,26 +1414,28 @@ function onUpdate(msg) {
       break;
     case "manual":
       // This copy's folder isn't writable (e.g. Program Files): download by hand.
-      status(`Version ${msg.version} is available.`);
-      updateBar(`Paraphe ${msg.version} is available.`, [
+      status("A new version is available.");
+      updateBar("A new version of Paraphe is available.", [
         ["Download", () => { window.open("https://github.com/joris-decombe/paraphe/releases/latest"); later(); }, true],
         ["Later", later],
       ]);
       break;
     case "downloading":
-      status(`Downloading version ${msg.version}…`);
-      updateBar(`Downloading Paraphe ${msg.version}…`);
+      status("Downloading the update…");
+      updateBar("Downloading the update…");
       break;
     case "ready":
-      status(`Version ${msg.version} is ready. It installs when you close Paraphe.`);
-      updateBar(`Paraphe ${msg.version} is ready. It installs when you close Paraphe.`, [
+      status("The update installs when you close Paraphe.");
+      updateBar("The update is ready. It installs when you close Paraphe.", [
         ["Restart now", () => host.postMessage({ type: "update-restart" }), true],
         ["Later", later],
       ]);
       break;
     case "error":
-      status(`Couldn't update: ${msg.error}`);
-      if (!msg.manual) updateBar(`Couldn't update: ${msg.error}`, [["OK", later]]);
+      // The details stay in the console; people get what to do.
+      console.warn("Update:", msg.error);
+      status("Couldn't update Paraphe. Try again later.");
+      if (!msg.manual) updateBar("Couldn't update Paraphe. Try again later.", [["OK", later]]);
       break;
   }
 }
@@ -1451,7 +1450,10 @@ if (host) {
   }
   $("#makeDefault").addEventListener("click", () => host.postMessage({ type: "make-default" }));
   $("#installBtn").addEventListener("click", () => host.postMessage({ type: "install" }));
-  $("#setDefault").addEventListener("click", () => host.postMessage({ type: "default-app" }));
+  $("#setDefault").addEventListener("click", () => {
+    host.postMessage({ type: "default-app" });
+    toast("Pick Paraphe, then Always.");
+  });
   $("#checkNow").addEventListener("click", () => host.postMessage({ type: "update-check" }));
   $("#autoUpdates").addEventListener("change", (e) => {
     if (hostInfo.updates === "ask") updateBar(null);
