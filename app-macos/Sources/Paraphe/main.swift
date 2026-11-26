@@ -60,7 +60,13 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
 
     private func send(_ task: WKURLSchemeTask, url: URL, data: Data, mime: String, encoding: String?) {
-        let response = URLResponse(url: url, mimeType: mime, expectedContentLength: data.count, textEncodingName: encoding)
+        // An HTTP response with status 200: a plain URLResponse reaches the
+        // page's fetch() as status 0, so res.ok is false and opening fails.
+        let type = encoding.map { "\(mime); charset=\($0)" } ?? mime
+        let headers = ["Content-Type": type, "Content-Length": String(data.count)]
+        guard let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: headers) else {
+            return deny(task, 500)
+        }
         task.didReceive(response)
         task.didReceive(data)
         task.didFinish()
