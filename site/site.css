@@ -3,17 +3,32 @@
    in the app's ink. No web fonts, no JavaScript. */
 
 :root {
-  --desk: #d9dde3;
-  --desk-2: #cfd4db;
+  /* The app's default Orange theme. */
+  --desk: #f3b49c;
+  --desk-2: #eba68c;
   --paper: #ffffff;
-  --ink: #2340b0;
-  --ink-strong: #1a3190;
-  --ink-soft: rgb(35 64 176 / 0.09);
-  --text: #1f232a;
-  --muted: #4c535e;
-  --rule: #c3c9d2;
-  --field: #eef0fb;
-  --sheet-shadow: 0 1px 2px rgb(20 28 45 / 0.12), 0 18px 50px rgb(20 28 45 / 0.16);
+  --ink: #6b2a02;           /* deeper than the app's, to read on the gradient */
+  --ink-strong: #521f01;
+  --ink-soft: rgb(107 42 2 / 0.1);
+  --on-ink: #ffffff;
+  --text: #24170f;
+  --muted: #4a362e;
+  --rule: #d9977d;
+  --field: #feede6;
+  /* Sunrise over the desk: apricot top left, rose top right, warm sand at the
+     bottom. Every stop keeps text, links and muted text above 4.5:1. */
+  --glow:
+    radial-gradient(70rem 45rem at 8% -6%, #f7b98a 0%, transparent 65%),
+    radial-gradient(60rem 50rem at 104% 8%, #ee9db2 0%, transparent 62%),
+    radial-gradient(80rem 60rem at 45% 104%, #f2a985 0%, transparent 65%),
+    linear-gradient(180deg, #f3b49c, #efb39b 55%, #f0ad94);
+  --sheet-shadow: 0 1px 2px rgb(60 25 10 / 0.12), 0 18px 50px rgb(60 25 10 / 0.18);
+  /* On the sheet, which stays white in both modes. */
+  --sheet-ink: #af4803;
+  --sheet-text: #2c1e18;
+  --sheet-muted: #6e5a51;
+  --sheet-line: #ecdcd3;
+  --sheet-box: #a38d83;
 
   --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
@@ -24,14 +39,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --desk: #15171c;
-    --desk-2: #1c1f25;
-    --ink: #8ea2ff;
-    --ink-strong: #b3c0ff;
-    --ink-soft: rgb(142 162 255 / 0.12);
-    --text: #e8eaee;
-    --muted: #a7aeba;
-    --rule: #3a3f49;
+    --desk: #1e0e07;
+    --desk-2: #28150c;
+    --ink: #fea47b;
+    --ink-strong: #fecab3;
+    --ink-soft: rgb(254 164 123 / 0.12);
+    --on-ink: #300f01;
+    --text: #f3e9e5;
+    --muted: #c3aca2;
+    --rule: #47352d;
+    --glow:
+      radial-gradient(70rem 45rem at 8% -6%, #4a1e0a 0%, transparent 65%),
+      radial-gradient(60rem 50rem at 104% 8%, #3a0f26 0%, transparent 62%),
+      radial-gradient(80rem 60rem at 45% 104%, #43200e 0%, transparent 65%),
+      linear-gradient(180deg, #1f0f08, #1a0c09);
     --sheet-shadow: 0 2px 10px rgb(0 0 0 / 0.5), 0 24px 60px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -42,6 +63,8 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--desk);
+  background-image: var(--glow);
+  background-attachment: fixed; /* the sunrise stays put while the page scrolls */
   color: var(--text);
   font: 1.0625rem/1.6 var(--ui);
 }
@@ -67,31 +90,31 @@ a:hover { color: var(--ink-strong); }
 .hero { padding-block: 1.5rem 4.5rem; }
 .sheet {
   position: relative;
-  background: #fff;
-  color: #1f232a;
+  background: var(--paper);
+  color: var(--sheet-text);
   border-radius: 3px;
   box-shadow: var(--sheet-shadow);
   padding: clamp(1.75rem, 5vw, 4rem) clamp(1.5rem, 6vw, 5rem) clamp(2rem, 5vw, 3.5rem);
   font-family: var(--printed);
 }
-.sheet-head { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; color: #6a717c; border-bottom: 1px solid #d5d9df; padding-bottom: 0.7rem; margin-bottom: clamp(1.5rem, 4vw, 2.75rem); }
+.sheet-head { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; color: var(--sheet-muted); border-bottom: 1px solid var(--sheet-line); padding-bottom: 0.7rem; margin-bottom: clamp(1.5rem, 4vw, 2.75rem); }
 .sheet h1 {
   margin: 0;
   font: 700 clamp(2.5rem, 7.2vw, 5.4rem)/0.98 var(--printed);
   letter-spacing: -0.035em;
   max-width: 13ch;
 }
-.sheet .lede { margin: 1.4rem 0 0; max-width: 40rem; font-size: clamp(1.05rem, 1.6vw, 1.25rem); line-height: 1.5; color: #333944; }
+.sheet .lede { margin: 1.4rem 0 0; max-width: 40rem; font-size: clamp(1.05rem, 1.6vw, 1.25rem); line-height: 1.5; color: var(--sheet-text); }
 
 .sheet-fields { margin-top: clamp(1.75rem, 4vw, 2.75rem); display: grid; grid-template-columns: 1fr minmax(15rem, 22rem); gap: 1.25rem 2.5rem; align-items: end; }
-.label { display: block; font-size: 0.78rem; color: #4c535e; margin-bottom: 0.4rem; }
+.label { display: block; font-size: 0.78rem; color: var(--sheet-muted); margin-bottom: 0.4rem; }
 .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem 1.6rem; }
 .checks li { display: inline-flex; align-items: center; gap: 0.55rem; font-size: 1rem; }
-.box { width: 1.3rem; height: 1.3rem; border: 1.5px solid #8a919c; border-radius: 2px; display: inline-grid; place-items: center; flex: none; }
-.box svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: #2340b0; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.box { width: 1.3rem; height: 1.3rem; border: 1.5px solid var(--sheet-box); border-radius: 2px; display: inline-grid; place-items: center; flex: none; }
+.box svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: var(--sheet-ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 
-.sig { border: 1.5px solid #8a919c; border-radius: 2px; height: 6.2rem; padding: 0.3rem 0.8rem; display: grid; place-items: center; }
-.sig svg { width: 100%; height: 100%; fill: none; stroke: #2340b0; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sig { border: 1.5px solid var(--sheet-box); border-radius: 2px; height: 6.2rem; padding: 0.3rem 0.8rem; display: grid; place-items: center; }
+.sig svg { width: 100%; height: 100%; fill: none; stroke: var(--sheet-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 /* The one moment of motion: the paraphe draws itself once. */
 .sig path { stroke-dasharray: 1; stroke-dashoffset: 0; }
@@ -105,11 +128,10 @@ a:hover { color: var(--ink-strong); }
 .btn {
   display: inline-flex; align-items: center; gap: 0.6rem;
   padding: 0.85rem 1.35rem; border-radius: 9px;
-  background: var(--ink); color: #fff; text-decoration: none;
+  background: var(--ink); color: var(--on-ink); text-decoration: none;
   font: 600 1.05rem/1 var(--ui);
 }
-.btn:hover { background: var(--ink-strong); color: #fff; }
-@media (prefers-color-scheme: dark) { .btn, .btn:hover { color: #0f1530; } }
+.btn:hover { background: var(--ink-strong); color: var(--on-ink); }
 .btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .get .meta { color: var(--muted); font-size: 0.92rem; }
 .get .alt { font-weight: 600; }
@@ -166,7 +188,7 @@ code { font-size: 0.92em; }
 
 /* ---------- footer ---------- */
 
-footer { border-top: 1px solid var(--rule); background: var(--desk-2); padding-block: 1.75rem 2.5rem; font-size: 0.9rem; color: var(--muted); }
+footer { border-top: 1px solid var(--rule); background: color-mix(in srgb, var(--desk-2) 55%, transparent); padding-block: 1.75rem 2.5rem; font-size: 0.9rem; color: var(--muted); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 0.5rem 1.75rem; }
 footer a { color: var(--muted); }
 
