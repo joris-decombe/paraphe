@@ -8,6 +8,14 @@
 <meta name="color-scheme" content="light dark">
 <title>Paraphe</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3fa8'/%3E%3Cpath d='M7 21c3-1 4-9 7-9s-1 9 2 9 3-5 5-5 1 4 4 3' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+// Apply the saved light/dark and colour choice before the first paint.
+try {
+  const a = JSON.parse(localStorage.getItem("paraphe.appearance") || "{}");
+  if (a.mode === "light" || a.mode === "dark") document.documentElement.dataset.mode = a.mode;
+  if (typeof a.theme === "string" && /^[a-z]+$/.test(a.theme)) document.documentElement.dataset.theme = a.theme;
+} catch {}
+</script>
 <style>/*CSS*/</style>
 </head>
 <body data-tool="select">
@@ -63,8 +71,8 @@
         <svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg>
       </button>
     </div>
-    <button id="settingsBtn" class="tool" title="Settings" aria-label="Settings" hidden>
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" stroke-width="2.8" stroke-dasharray="2.6 3.84" stroke-linecap="butt"/><circle cx="12" cy="12" r="6.2"/><circle cx="12" cy="12" r="2.3"/></svg>
+    <button id="settingsBtn" class="tool" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M18.77 9.54L21.42 10.17L21.42 13.83L18.77 14.46L18.53 15.04L19.96 17.37L17.37 19.96L15.04 18.53L14.46 18.77L13.83 21.42L10.17 21.42L9.54 18.77L8.96 18.53L6.63 19.96L4.04 17.37L5.47 15.04L5.23 14.46L2.58 13.83L2.58 10.17L5.23 9.54L5.47 8.96L4.04 6.63L6.63 4.04L8.96 5.47L9.54 5.23L10.17 2.58L13.83 2.58L14.46 5.23L15.04 5.47L17.37 4.04L19.96 6.63L18.53 8.96Z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
     <button id="save" class="btn primary" title="Save a copy (Ctrl+S)">Save</button>
   </div>
@@ -172,7 +180,7 @@
       </div>
       <button id="installBtn" type="button" class="btn primary">Install</button>
     </div>
-    <button id="emptySettings" type="button" class="link-btn" hidden>Settings</button>
+    <button id="emptySettings" type="button" class="link-btn">Settings</button>
   </div>
 </section>
 
@@ -182,14 +190,23 @@
       <h2>Settings</h2>
       <button type="submit" class="icon-btn" aria-label="Close">✕</button>
     </header>
-    <section class="set-row">
+    <section class="set-look">
+      <h3>Appearance</h3>
+      <div id="modeChoice" class="seg" role="radiogroup" aria-label="Light or dark">
+        <button type="button" role="radio" data-mode="system">System</button>
+        <button type="button" role="radio" data-mode="light">Light</button>
+        <button type="button" role="radio" data-mode="dark">Dark</button>
+      </div>
+      <div id="themeChoice" class="themes" role="radiogroup" aria-label="Colour"></div>
+    </section>
+    <section class="set-row" data-host>
       <div>
         <h3>Default PDF app</h3>
         <p id="defaultText"></p>
       </div>
       <button type="button" id="setDefault" class="btn">Make Paraphe the default</button>
     </section>
-    <section class="set-row">
+    <section class="set-row" data-host>
       <div>
         <h3>Updates</h3>
         <label class="check-row"><input type="checkbox" id="autoUpdates"> Check for updates automatically</label>
@@ -198,7 +215,14 @@
       </div>
       <button type="button" id="checkNow" class="btn">Check now</button>
     </section>
-    <section class="set-row" id="setInstall">
+    <section class="set-row" data-web>
+      <div>
+        <h3>Windows app</h3>
+        <p>The same Paraphe as a small app for Windows 10 and 11. It opens PDFs from File Explorer, installs for your account without admin rights, and can keep itself up to date.</p>
+      </div>
+      <a class="btn primary" href="https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip" rel="noopener">Download</a>
+    </section>
+    <section class="set-row" id="setInstall" data-host>
       <div>
         <h3>Install</h3>
         <p id="installText"></p>

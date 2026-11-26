@@ -1,53 +1,110 @@
 /* Paraphe: pages on a blotter, one ink-blue accent, signing tools in a dock. */
 
 :root {
+  /* Every colour has a light and a dark side: light-dark() picks one from
+     color-scheme, which follows the system unless Settings fixes it. */
+  color-scheme: light dark;
   /* ink */
-  --ink: #2340b0;
-  --ink-strong: #1a3190;
-  --ink-soft: rgb(35 64 176 / 0.1);
-  --ink-ring: rgb(35 64 176 / 0.35);
+  --ink: light-dark(#2340b0, #8ea2ff);
+  --ink-strong: light-dark(#1a3190, #b3c0ff);
+  --ink-soft: light-dark(rgb(35 64 176 / 0.1), rgb(142 162 255 / 0.14));
+  --ink-ring: light-dark(rgb(35 64 176 / 0.35), rgb(142 162 255 / 0.45));
+  --on-ink: light-dark(#ffffff, #10142a);
   /* surfaces */
-  --desk: #d9dde3;          /* blotter */
-  --surface: #ffffff;       /* bars, dock, dialogs */
-  --surface-2: #f1f3f6;     /* hover, wells */
-  --line: #e1e4e9;
+  --desk: light-dark(#d9dde3, #15171c);          /* blotter */
+  --surface: light-dark(#ffffff, #23262d);       /* bars, dock, dialogs */
+  --surface-2: light-dark(#f1f3f6, #2d3139);     /* hover, wells */
+  --line: light-dark(#e1e4e9, #363a43);
   /* text */
-  --text: #1f232a;
-  --muted: #646b76;
-  --danger: #b3261e;
+  --text: light-dark(#1f232a, #e8eaee);
+  --muted: light-dark(#646b76, #9aa1ad);
+  --danger: light-dark(#b3261e, #ff8a80);
   /* shape */
   --bar-h: 54px;
   --r-sm: 7px;
   --r-md: 10px;
   --r-lg: 16px;
-  --shadow-float: 0 1px 2px rgb(20 28 45 / 0.08), 0 10px 30px rgb(20 28 45 / 0.14);
-  --page-shadow: 0 1px 2px rgb(20 28 45 / 0.12), 0 8px 28px rgb(20 28 45 / 0.10);
+  --shadow-float: 0 1px 2px light-dark(rgb(20 28 45 / 0.08), rgb(0 0 0 / 0.4)), 0 10px 30px light-dark(rgb(20 28 45 / 0.14), rgb(0 0 0 / 0.45));
+  --page-shadow: 0 1px 2px light-dark(rgb(20 28 45 / 0.12), rgb(0 0 0 / 0.3)), 0 8px 28px light-dark(rgb(20 28 45 / 0.10), rgb(0 0 0 / 0.4));
   /* pdf.js */
   --page-margin: 18px auto;
   --page-border: none;
 
   font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   color: var(--text);
-  color-scheme: light;
 }
+:root[data-mode="light"] { color-scheme: light; }
+:root[data-mode="dark"] { color-scheme: dark; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #8ea2ff;
-    --ink-strong: #b3c0ff;
-    --ink-soft: rgb(142 162 255 / 0.14);
-    --ink-ring: rgb(142 162 255 / 0.45);
-    --desk: #15171c;
-    --surface: #23262d;
-    --surface-2: #2d3139;
-    --line: #363a43;
-    --text: #e8eaee;
-    --muted: #9aa1ad;
-    --danger: #ff8a80;
-    --shadow-float: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.45);
-    --page-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
-    color-scheme: dark;
-  }
+/* The default's colours again, for its preview in Settings. */
+.theme-dot[data-theme="blue"] { --ink: light-dark(#2340b0, #8ea2ff); --desk: light-dark(#d9dde3, #15171c); --surface: light-dark(#ffffff, #23262d); }
+
+/* Colour themes, generated in OKLCH from one hue each and checked for contrast
+   (text 4.5:1 on its surfaces, both sides). Blue, above, is the default. */
+:root[data-theme="teal"], .theme-dot[data-theme="teal"] {
+  --ink: light-dark(#067272, #76cfcf);
+  --ink-strong: light-dark(#055c5c, #a9e4e4);
+  --ink-soft: light-dark(rgb(6 114 114 / 0.1), rgb(118 207 207 / 0.14));
+  --ink-ring: light-dark(rgb(6 114 114 / 0.35), rgb(118 207 207 / 0.45));
+  --on-ink: light-dark(#ffffff, #012020);
+  --desk: light-dark(#bce2e1, #011717);
+  --surface: light-dark(#fafefe, #0e2626);
+  --surface-2: light-dark(#e1f6f6, #193131);
+  --line: light-dark(#d2e8e8, #283e3e);
+  --text: light-dark(#122525, #e3eeee);
+  --muted: light-dark(#496766, #93aead);
+}
+:root[data-theme="green"], .theme-dot[data-theme="green"] {
+  --ink: light-dark(#057836, #8ad299);
+  --ink-strong: light-dark(#016129, #b5e6be);
+  --ink-soft: light-dark(rgb(5 120 54 / 0.1), rgb(138 210 153 / 0.14));
+  --ink-ring: light-dark(rgb(5 120 54 / 0.35), rgb(138 210 153 / 0.45));
+  --on-ink: light-dark(#ffffff, #00220a);
+  --desk: light-dark(#c7e1cb, #08160b);
+  --surface: light-dark(#fbfefc, #17261a);
+  --surface-2: light-dark(#e7f6e9, #223125);
+  --line: light-dark(#d8e8db, #2f3d32);
+  --text: light-dark(#19251b, #e6eee7);
+  --muted: light-dark(#536656, #9bad9e);
+}
+:root[data-theme="orange"], .theme-dot[data-theme="orange"] {
+  --ink: light-dark(#af4803, #fea47b);
+  --ink-strong: light-dark(#903a03, #fecab3);
+  --ink-soft: light-dark(rgb(175 72 3 / 0.1), rgb(254 164 123 / 0.14));
+  --ink-ring: light-dark(rgb(175 72 3 / 0.35), rgb(254 164 123 / 0.45));
+  --on-ink: light-dark(#ffffff, #300f01);
+  --desk: light-dark(#f2d1c3, #1e0e07);
+  --surface: light-dark(#fefdfd, #2e1d15);
+  --surface-2: light-dark(#feede6, #3a281f);
+  --line: light-dark(#f2ded5, #47352d);
+  --text: light-dark(#2c1e18, #f3e9e5);
+  --muted: light-dark(#725a50, #b9a298);
+}
+:root[data-theme="pink"], .theme-dot[data-theme="pink"] {
+  --ink: light-dark(#b5236e, #ff9ac2);
+  --ink-strong: light-dark(#9b015a, #ffc5da);
+  --ink-soft: light-dark(rgb(181 35 110 / 0.1), rgb(255 154 194 / 0.14));
+  --ink-ring: light-dark(rgb(181 35 110 / 0.35), rgb(255 154 194 / 0.45));
+  --on-ink: light-dark(#ffffff, #2f0c1c);
+  --desk: light-dark(#f0cfda, #1d0d13);
+  --surface: light-dark(#fefdfd, #2d1c22);
+  --surface-2: light-dark(#feebf2, #39262d);
+  --line: light-dark(#f1dde4, #45333a);
+  --text: light-dark(#2b1d22, #f2e8eb);
+  --muted: light-dark(#715861, #b8a0a9);
+}
+:root[data-theme="violet"], .theme-dot[data-theme="violet"] {
+  --ink: light-dark(#7137b6, #c9acfe);
+  --ink-strong: light-dark(#5d1e9f, #decefe);
+  --ink-soft: light-dark(rgb(113 55 182 / 0.1), rgb(201 172 254 / 0.14));
+  --ink-ring: light-dark(rgb(113 55 182 / 0.35), rgb(201 172 254 / 0.45));
+  --on-ink: light-dark(#ffffff, #1f1332);
+  --desk: light-dark(#ddd4f0, #150f1e);
+  --surface: light-dark(#fdfdfe, #241e2e);
+  --surface-2: light-dark(#f3eefe, #2f293a);
+  --line: light-dark(#e5e0f1, #3b3646);
+  --text: light-dark(#231f2c, #ece9f2);
+  --muted: light-dark(#635c72, #aaa4b8);
 }
 
 * { box-sizing: border-box; }
@@ -75,11 +132,10 @@ button, input, select { font: inherit; color: inherit; }
 .btn:hover:not(:disabled) { background: var(--surface-2); }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); font-weight: 550; }
 .btn.ghost:hover { color: var(--text); }
-.btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 .btn.primary:hover:not(:disabled) { background: var(--ink-strong); border-color: var(--ink-strong); }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn.big { height: 46px; padding: 0 26px; font-size: 15px; border-radius: var(--r-md); }
-@media (prefers-color-scheme: dark) { .btn.primary { color: #10142a; } }
 
 .link-btn { border: 0; background: none; color: var(--ink); cursor: pointer; padding: 2px 0; font-size: 13px; }
 .link-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -149,13 +205,12 @@ body:not(.has-doc) .dock { display: none; }
 .sign-btn {
   height: 38px; padding: 0 16px 0 12px; border: 0; border-radius: var(--r-md); cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px; font-weight: 650;
-  background: var(--ink); color: #fff; margin: 0 4px;
+  background: var(--ink); color: var(--on-ink); margin: 0 4px;
 }
 .sign-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .sign-btn:hover { background: var(--ink-strong); }
 .sign-btn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--ink-ring); }
 .sign-btn:disabled { opacity: 0.4; cursor: default; }
-@media (prefers-color-scheme: dark) { .sign-btn { color: #10142a; } }
 
 .tool.region { padding: 0 4px 0 8px; gap: 0; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--muted); }
 .tool.region .caret { width: 15px; height: 15px; }
@@ -186,12 +241,16 @@ body:not(.has-doc) .dock { display: none; }
 
 #viewerContainer { position: absolute; inset: var(--bar-h) 0 0 0; overflow: auto; outline: none; }
 #viewerContainer .pdfViewer { padding-bottom: 96px; } /* room under the dock */
-.pdfViewer .page { box-shadow: var(--page-shadow); color-scheme: light; }
+/* Pages stay paper-white: what is drawn on them uses the light side of the theme. */
+.pdfViewer .page { box-shadow: var(--page-shadow); }
+.pdfViewer .page > * { color-scheme: light; }
 body:not(.has-doc) #viewerContainer { visibility: hidden; }
-.textLayer ::selection { background: rgb(35 64 176 / 0.25); }
+.textLayer ::selection { background: color-mix(in srgb, var(--ink) 25%, transparent); }
 
 .annotationLayer {
-  --annotation-unfocused-field-background: url("data:image/svg+xml;charset=UTF-8,<svg width='1px' height='1px' xmlns='http://www.w3.org/2000/svg'><rect width='100%' height='100%' style='fill:rgba(35, 64, 176, 0.08);'/></svg>");
+  /* Form fields tinted with the theme's ink (pdf.js uses this as a background image). */
+  --field-tint: color-mix(in srgb, var(--ink) 8%, transparent);
+  --annotation-unfocused-field-background: linear-gradient(var(--field-tint), var(--field-tint));
 }
 
 /* ---------- contents panel ---------- */
@@ -226,14 +285,14 @@ body[data-tool="text"] .pp-overlay, body[data-tool="date"] .pp-overlay { cursor:
   content: ""; position: absolute; inset: -3px; border-radius: 3px; pointer-events: none;
   outline: 1px dashed transparent;
 }
-.pp-item:hover::after { outline-color: rgb(35 64 176 / 0.45); }
-.pp-item.sel::after { outline: 1.5px solid #2340b0; }
+.pp-item:hover::after { outline-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.pp-item.sel::after { outline: 1.5px solid var(--ink); }
 
 .pp-text { white-space: pre; line-height: 1.35; font-family: Helvetica, Arial, sans-serif; }
 .pp-txt { outline: none; min-width: 0.5em; min-height: 1.35em; }
 .pp-text.editing { cursor: text; }
 .pp-text.editing .pp-txt { background: rgb(255 255 255 / 0.65); }
-.pp-text.editing::after { outline: 1.5px solid #2340b0; }
+.pp-text.editing::after { outline: 1.5px solid var(--ink); }
 
 .pp-image img { display: block; width: 100%; height: 100%; user-select: none; pointer-events: none; }
 .pp-check svg, .pp-cross svg {
@@ -243,7 +302,7 @@ body[data-tool="text"] .pp-overlay, body[data-tool="date"] .pp-overlay { cursor:
 
 .pp-handle {
   position: absolute; right: -8px; bottom: -8px; width: 11px; height: 11px; border-radius: 3px;
-  background: #fff; border: 1.5px solid #2340b0; cursor: nwse-resize; display: none;
+  background: #fff; border: 1.5px solid var(--ink); cursor: nwse-resize; display: none;
 }
 .pp-item.sel .pp-handle { display: block; }
 
@@ -269,9 +328,9 @@ body.has-doc .empty { display: none; }
 
 .drop-veil {
   position: fixed; inset: 0; z-index: 90; display: none; place-items: center; pointer-events: none;
-  background: rgb(35 64 176 / 0.10); box-shadow: inset 0 0 0 3px var(--ink);
+  background: var(--ink-soft); box-shadow: inset 0 0 0 3px var(--ink);
 }
-.drop-veil span { background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 999px; font-weight: 650; }
+.drop-veil span { background: var(--ink); color: var(--on-ink); padding: 10px 20px; border-radius: 999px; font-weight: 650; }
 body.dragging .drop-veil { display: grid; }
 
 /* ---------- find bar, hints, toasts ---------- */
@@ -403,15 +462,13 @@ body:not(.has-doc) .toast { bottom: 24px; }
 
 /* Find highlights in ink instead of pdf.js's magenta and green. */
 .pdfViewer .textLayer .highlight {
-  --highlight-bg-color: rgb(35 64 176 / 0.16);
-  --highlight-selected-bg-color: rgb(35 64 176 / 0.42);
+  --highlight-bg-color: color-mix(in srgb, var(--ink) 16%, transparent);
+  --highlight-selected-bg-color: color-mix(in srgb, var(--ink) 42%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  /* Keep the black-ink swatch visible on the dark dock. */
-  .swatch { box-shadow: 0 0 0 1px #6b717c; }
-  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
-}
+/* Keep the black-ink swatch visible on a dark dock. */
+.swatch { box-shadow: 0 0 0 1px light-dark(var(--line), #6b717c); }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 
 /* ---------- app only: install, settings, updates ---------- */
 
@@ -448,3 +505,30 @@ body:not(.has-doc) .toast { bottom: 24px; }
 }
 .update-actions { display: flex; gap: 6px; flex: none; }
 .update-bar .btn { height: 30px; padding: 0 12px; }
+
+/* ---------- settings: appearance ---------- */
+
+.set-look h3 { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r-md); background: var(--surface-2); }
+.seg button {
+  height: 30px; padding: 0 14px; border: 0; border-radius: var(--r-sm); background: transparent;
+  color: var(--muted); font-weight: 550; cursor: pointer;
+}
+.seg button:hover { color: var(--text); }
+.seg button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15); }
+.themes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.theme-swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 64px; padding: 8px 0 6px;
+  border: 0; border-radius: var(--r-md); background: transparent; cursor: pointer; font-size: 12.5px; color: var(--muted);
+}
+.theme-swatch:hover { background: var(--surface-2); color: var(--text); }
+/* The theme in miniature: its desk and its ink. */
+.theme-swatch i {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--desk) 50%, var(--ink) 50%);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+.theme-swatch[aria-checked="true"] { color: var(--text); font-weight: 600; }
+.theme-swatch[aria-checked="true"] i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
+a.btn.primary { color: var(--on-ink); }
