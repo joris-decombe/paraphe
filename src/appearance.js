@@ -3,13 +3,14 @@
 // first paint, and the CSS does the rest with light-dark() and color-scheme.
 
 const STORE_KEY = "paraphe.appearance";
+const DEFAULT_THEME = "orange";
 
 /** Colour themes; their colours are in app.css. */
 export const THEMES = [
+  { id: "orange", name: "Orange" },
   { id: "blue", name: "Blue" },
   { id: "teal", name: "Teal" },
   { id: "green", name: "Green" },
-  { id: "orange", name: "Orange" },
   { id: "pink", name: "Pink" },
   { id: "violet", name: "Violet" },
 ];
@@ -21,10 +22,10 @@ function load() {
     const a = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
     return {
       mode: ["light", "dark"].includes(a.mode) ? a.mode : "system",
-      theme: THEMES.some((t) => t.id === a.theme) ? a.theme : "blue",
+      theme: THEMES.some((t) => t.id === a.theme) ? a.theme : DEFAULT_THEME,
     };
   } catch {
-    return { mode: "system", theme: "blue" };
+    return { mode: "system", theme: DEFAULT_THEME };
   }
 }
 
@@ -42,7 +43,7 @@ function apply() {
   const root = document.documentElement;
   if (appearance.mode === "system") delete root.dataset.mode;
   else root.dataset.mode = appearance.mode;
-  if (appearance.theme === "blue") delete root.dataset.theme;
+  if (appearance.theme === DEFAULT_THEME) delete root.dataset.theme;
   else root.dataset.theme = appearance.theme;
   for (const fn of listeners) fn();
 }
@@ -50,7 +51,7 @@ function apply() {
 export function setAppearance(change) {
   Object.assign(appearance, change);
   try {
-    if (appearance.mode === "system" && appearance.theme === "blue") localStorage.removeItem(STORE_KEY);
+    if (appearance.mode === "system" && appearance.theme === DEFAULT_THEME) localStorage.removeItem(STORE_KEY);
     else localStorage.setItem(STORE_KEY, JSON.stringify(appearance));
   } catch {
     // Storage blocked: the choice lasts until the page closes.

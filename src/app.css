@@ -1,10 +1,11 @@
-/* Paraphe: pages on a blotter, one ink-blue accent, signing tools in a dock. */
+/* Paraphe: pages on a blotter, one ink accent (orange unless Settings picks
+   another colour), signing tools in a dock. */
 
 :root {
   /* Every colour has a light and a dark side: light-dark() picks one from
      color-scheme, which follows the system unless Settings fixes it. */
   color-scheme: light dark;
-  /* ink */
+  /* ink: these are Blue's colours; the default, Orange, is set further down */
   --ink: light-dark(#2340b0, #8ea2ff);
   --ink-strong: light-dark(#1a3190, #b3c0ff);
   --ink-soft: light-dark(rgb(35 64 176 / 0.1), rgb(142 162 255 / 0.14));
@@ -36,11 +37,12 @@
 :root[data-mode="light"] { color-scheme: light; }
 :root[data-mode="dark"] { color-scheme: dark; }
 
-/* The default's colours again, for its preview in Settings. */
+/* Blue's colours again, for its preview in Settings. */
 .theme-dot[data-theme="blue"] { --ink: light-dark(#2340b0, #8ea2ff); --desk: light-dark(#d9dde3, #15171c); --surface: light-dark(#ffffff, #23262d); }
 
 /* Colour themes, generated in OKLCH from one hue each and checked for contrast
-   (text 4.5:1 on its surfaces, both sides). Blue, above, is the default. */
+   (text 4.5:1 on its surfaces, both sides). Orange is the default: it applies
+   whenever no colour is chosen. */
 :root[data-theme="teal"], .theme-dot[data-theme="teal"] {
   --ink: light-dark(#067272, #76cfcf);
   --ink-strong: light-dark(#055c5c, #a9e4e4);
@@ -67,7 +69,7 @@
   --text: light-dark(#19251b, #e6eee7);
   --muted: light-dark(#536656, #9bad9e);
 }
-:root[data-theme="orange"], .theme-dot[data-theme="orange"] {
+:root:not([data-theme]), :root[data-theme="orange"], .theme-dot[data-theme="orange"] {
   --ink: light-dark(#af4803, #fea47b);
   --ink-strong: light-dark(#903a03, #fecab3);
   --ink-soft: light-dark(rgb(175 72 3 / 0.1), rgb(254 164 123 / 0.14));
