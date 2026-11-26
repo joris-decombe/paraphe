@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Paraphe&nbsp;: remplir et signer des PDF gratuitement, sans Acrobat</title>
-<meta name="description" content="Appli gratuite et open source pour remplir et signer des formulaires PDF sur Windows ou dans le navigateur : texte, coches, date du jour et signature. Une alternative légère à Adobe Acrobat Reader, sans compte, sans pub, et rien n&#39;est envoyé.">
+<meta name="description" content="Appli gratuite et open source pour remplir et signer des formulaires PDF sur Windows, sur Mac ou dans le navigateur : texte, coches, date du jour et signature. Une alternative légère à Adobe Acrobat Reader, sans compte, sans pub, et rien n&#39;est envoyé.">
 <meta name="color-scheme" content="light dark">
 <link rel="canonical" href="https://paraphe.dx2-66.com/fr/">
 <link rel="alternate" hreflang="en" href="https://paraphe.dx2-66.com/">
@@ -29,10 +29,10 @@
  "@type": "SoftwareApplication",
  "name": "Paraphe",
  "url": "https://paraphe.dx2-66.com/fr/",
- "description": "Appli gratuite et open source pour remplir et signer des formulaires PDF sur Windows ou dans le navigateur : texte, coches, date du jour et signature. Une alternative légère à Adobe Acrobat Reader, sans compte, sans pub, et rien n'est envoyé.",
+ "description": "Appli gratuite et open source pour remplir et signer des formulaires PDF sur Windows, sur Mac ou dans le navigateur : texte, coches, date du jour et signature. Une alternative légère à Adobe Acrobat Reader, sans compte, sans pub, et rien n'est envoyé.",
  "applicationCategory": "BusinessApplication",
  "applicationSubCategory": "PDF form filler and signer",
- "operatingSystem": "Windows 10, Windows 11, web browser",
+ "operatingSystem": "Windows 10, Windows 11, macOS 13 or later, web browser",
  "softwareVersion": "__VERSION__",
  "inLanguage": "fr",
  "offers": {
@@ -40,7 +40,10 @@
   "price": "0",
   "priceCurrency": "USD"
  },
- "downloadUrl": "https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip",
+ "downloadUrl": [
+  "https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip",
+  "https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-macos.zip"
+ ],
  "installUrl": "https://paraphe.dx2-66.com/app/",
  "screenshot": "https://paraphe.dx2-66.com/shot-light.webp",
  "image": "https://paraphe.dx2-66.com/og.png",
@@ -106,7 +109,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>
           Télécharger pour Windows
         </a>
-        <span class="meta">Version __VERSION__, __SIZE_FR__, pour Windows 10 et 11</span>
+        <a class="btn" href="https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-macos.zip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>
+          Télécharger pour Mac
+        </a>
+        <span class="meta">Version __VERSION__, pour Windows 10 et 11, et macOS 13 ou plus récent</span>
         <a class="alt" href="/app/">Ou l'utiliser dans le navigateur</a>
       </div>
     </div>
@@ -151,7 +158,7 @@
         <li>
           <span class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg></span>
           <h3>Enregistrer une copie</h3>
-          <p><kbd>Ctrl</kbd>+<kbd>S</kbd> enregistre «&#8239;Formulaire (signé).pdf&#8239;» et laisse l'original tel quel.</p>
+          <p><kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>⌘</kbd>+<kbd>S</kbd> sur Mac) enregistre «&#8239;Formulaire (signé).pdf&#8239;» et laisse l'original tel quel.</p>
         </li>
       </ul>
       <div class="also">
@@ -178,7 +185,7 @@
       <ul class="facts">
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Un PDF peut contenir des scripts, une façon courante d'attaquer les lecteurs de PDF. Paraphe ne les exécute jamais.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>La politique de sécurité de la page bloque toutes les requêtes réseau, donc un document ne peut pas quitter votre ordinateur, même par erreur.</span></li>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Pas de compte et pas de statistiques. L'appli Windows demande votre accord avant de chercher des mises à jour. Si vous dites oui, elle interroge GitHub une fois par jour, et n'installe une mise à jour que si elle porte la signature de Paraphe.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Pas de compte et pas de statistiques. L'appli Mac ne se connecte jamais à internet. L'appli Windows demande votre accord avant de chercher des mises à jour. Si vous dites oui, elle interroge GitHub une fois par jour, et n'installe une mise à jour que si elle porte la signature de Paraphe.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Les signatures que vous enregistrez restent sur votre ordinateur.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>La version navigateur marche pareil&nbsp;: ce site envoie la page, et tout le reste se passe sur votre ordinateur.</span></li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19.5 7"/></svg><span>Le code source est <a href="https://github.com/joris-decombe/paraphe">sur GitHub</a> sous licence MIT, donc tout le monde peut vérifier.</span></li>
@@ -200,15 +207,19 @@
           <p class="note">Windows affiche un avertissement la première fois, parce que l'appli n'est pas signée avec un certificat payant. Cliquez sur <strong>Informations complémentaires</strong>, puis sur <strong>Exécuter quand même</strong>.</p>
           <p class="note">Pour le garder, cliquez sur <strong>Install</strong> sur son écran d'accueil. Pour ouvrir tous vos PDF avec, ouvrez <strong>Settings</strong> (la roue dentée) et cliquez sur <strong>Make Paraphe the default</strong>. C'est aussi là qu'on le désinstalle.</p>
         </div>
-        <div class="side">
-          <div>
-            <h3>Dans le navigateur</h3>
-            <p><a href="/app/">Ouvrez Paraphe</a> dans Edge, Chrome ou Firefox et déposez-y un PDF. Rien à installer.</p>
-          </div>
-          <div>
-            <h3>Mac</h3>
-            <p class="muted">Une version Mac est en bêta. Pour l'instant, il faut la compiler depuis le code source&nbsp;: voir les <a href="https://github.com/joris-decombe/paraphe#use-it">instructions</a> (en anglais).</p>
-          </div>
+        <div>
+          <h3>Mac</h3>
+          <ol class="steps">
+            <li><a href="https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-macos.zip">Téléchargez Paraphe-macos.zip</a>, pour macOS 13 ou plus récent.</li>
+            <li>Ouvrez-le et déplacez <strong>Paraphe</strong> dans votre dossier Applications.</li>
+            <li>Lancez Paraphe depuis ce dossier.</li>
+          </ol>
+          <p class="note">La première fois, macOS refuse de l'ouvrir, parce que l'appli n'est pas signée avec un certificat Apple payant. Ouvrez <strong>Réglages Système</strong>, puis <strong>Confidentialité et sécurité</strong>, descendez et cliquez sur <strong>Ouvrir quand même</strong>.</p>
+          <p class="note">Pour ouvrir tous vos PDF avec, cliquez sur <strong>Make Paraphe my PDF app</strong> sur son écran d'accueil. Elle ne se met pas à jour toute seule&nbsp;: revenez ici pour les nouvelles versions.</p>
+        </div>
+        <div class="wide">
+          <h3>Dans le navigateur</h3>
+          <p><a href="/app/">Ouvrez Paraphe</a> dans Edge, Chrome ou Firefox et déposez-y un PDF. Rien à installer.</p>
         </div>
       </div>
     </div>

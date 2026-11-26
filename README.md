@@ -30,13 +30,13 @@ the toolbar) has the rest:
 - **Uninstall** (also in Windows Settings > Apps), optionally with your saved
   signatures and settings.
 
-**macOS app (beta).** On a Mac: `npm ci && npm run build:app-macos` (needs the
-Xcode command line tools) produces `dist/Paraphe.app` and
-`dist/Paraphe-<version>-macos.zip`, a universal (Apple silicon + Intel) app.
-Copy `Paraphe.app` anywhere (for example /Applications) and open it. The first
-time, right-click it and choose **Open**: the app is only ad-hoc signed, so
-macOS asks you to confirm it once. Sign with an Apple Developer ID and
-notarize before distributing beyond that. To open PDFs with Paraphe by
+**macOS app.** Each release has `Paraphe-<version>-macos.zip`, a universal
+(Apple silicon + Intel) app for macOS 13 or newer; the `latest` link is
+`Paraphe-macos.zip`. To build it yourself on a Mac: `npm ci && npm run
+build:app-macos` (needs the Xcode command line tools) produces
+`dist/Paraphe.app` and the zip. Move `Paraphe.app` to Applications and open
+it. The app is only ad-hoc signed, so the first time macOS won't open it:
+open System Settings > Privacy & Security and click **Open Anyway**. To open PDFs with Paraphe by
 default, click **Make Paraphe my PDF app** on its start screen, or use Finder
 > Get Info > Open with > "Use this application for all documents".
 
@@ -64,7 +64,10 @@ npm run release -- notes.md
 4. creates the GitHub release with the zip (also as the version-free
    `Paraphe-win-x64.zip`, for the `latest` link), the site, `update.json` and
    `update.json.sig`. Installed copies find the update there;
-5. starts the Paraphe workflow in joris-decombe/dx2-66, which checks the
+5. waits for the macOS app workflow (`.github/workflows/macos.yml`), which
+   builds the Mac app on a GitHub Mac runner and attaches
+   `Paraphe-<version>-macos.zip` and the version-free `Paraphe-macos.zip`;
+6. starts the Paraphe workflow in joris-decombe/dx2-66, which checks the
    signature and the site's hash, then deploys https://paraphe.dx2-66.com.
 
 Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
