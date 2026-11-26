@@ -114,9 +114,9 @@ try {
         </label>
         <div class="pop-label">Date</div>
         <div id="dateStyles" class="choices" role="radiogroup"></div>
-        <div class="pop-label">Amounts in form fields</div>
+        <div class="pop-label">Numbers</div>
         <div id="numberPreview" class="preview"></div>
-        <button id="formatsReset" type="button" class="link-btn">Follow system setting</button>
+        <button id="formatsReset" type="button" class="link-btn">Use my computer's setting</button>
       </div>
     </span>
   </div>
@@ -130,7 +130,7 @@ try {
     <button id="sizeDown" class="tool" title="Smaller text" aria-label="Smaller">
       <svg viewBox="0 0 24 24"><path d="M7 12h10"/></svg>
     </button>
-    <span id="sizeValue" class="size-value" title="Text size (pt)">11</span>
+    <span id="sizeValue" class="size-value" title="Text size">11</span>
     <button id="sizeUp" class="tool" title="Bigger text" aria-label="Bigger">
       <svg viewBox="0 0 24 24"><path d="M7 12h10M12 7v10"/></svg>
     </button>
@@ -142,7 +142,7 @@ try {
     <button id="undo" class="tool" title="Undo (Ctrl+Z)" aria-label="Undo">
       <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
     </button>
-    <button id="delete" class="tool" title="Delete selected (Del)" aria-label="Delete">
+    <button id="delete" class="tool" title="Delete (Del)" aria-label="Delete">
       <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
     </button>
   </div>
@@ -168,7 +168,7 @@ try {
   <div class="empty-inner">
     <svg class="flourish" viewBox="0 0 32 32" aria-hidden="true"><path pathLength="1" d="M5 22c3-1 4-10 7.5-10S11 22 14.5 22s3-5.5 5.5-5.5 1 4.5 5 3.5"/></svg>
     <h1>Fill it in. Sign it. Done.</h1>
-    <p class="lede">Drop a PDF anywhere on this window to start.</p>
+    <p class="lede">Drop a PDF here to start.</p>
     <button id="emptyOpen" class="btn primary big">Open a PDF</button>
     <p class="fine">Your files stay on this computer. Nothing is uploaded, ever.</p>
     <button id="makeDefault" type="button" class="link-btn make-default" hidden></button>
@@ -228,12 +228,14 @@ try {
       </div>
       <button type="button" id="setInstallBtn" class="btn"></button>
     </section>
-    <footer class="set-foot">
-      <span id="setVersion"></span>
-      <span>Made by Joris Decombe</span>
-      <a href="https://paraphe.dx2-66.com" target="_blank" rel="noopener">paraphe.dx2-66.com</a>
-      <a href="https://github.com/joris-decombe/paraphe" target="_blank" rel="noopener">Source (MIT)</a>
-    </footer>
+    <section class="set-about">
+      <h3>About</h3>
+      <p><span id="setVersion"></span>, made by Joris Decombe. Free and open source.</p>
+      <p class="set-links">
+        <a href="https://paraphe.dx2-66.com" target="_blank" rel="noopener">Website</a>
+        <a href="https://github.com/joris-decombe/paraphe" target="_blank" rel="noopener">Source code</a>
+      </p>
+    </section>
   </form>
 </dialog>
 

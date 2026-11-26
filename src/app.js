@@ -902,7 +902,8 @@ async function printDocument() {
     }
   } catch (err) {
     console.error(err);
-    toast(`Couldn't print: ${err?.message || err}`);
+    console.warn("Print:", err);
+    toast("Couldn't print this PDF.");
   } finally {
     container.replaceChildren();
     for (const u of urls) URL.revokeObjectURL(u);
@@ -1077,11 +1078,12 @@ async function openFile(file, handle = null) {
     showFindCount();
     loadOutline(doc);
     const fields = await doc.getFieldObjects();
-    if (collectNumberFields(fields)) toast("This PDF has form fields: click a field to fill it.");
+    if (collectNumberFields(fields)) toast("Click a field to fill it in.");
   } catch (err) {
     if (err?.name === "PasswordException") return;
     console.error(err);
-    toast(`Couldn't open this file: ${err?.message || err}`);
+    console.warn("Open:", err);
+    toast("Couldn't open this PDF. It may be damaged.");
   }
   updateChrome();
 }
@@ -1167,7 +1169,8 @@ async function save() {
     bytes = await buildOutputBytes();
   } catch (err) {
     console.error(err);
-    toast(`Couldn't build the PDF: ${err?.message || err}`);
+    console.warn("Save:", err);
+    toast("Couldn't save this PDF.");
     return;
   } finally {
     btn.disabled = false;
@@ -1261,10 +1264,11 @@ async function fromHost(msg, handle = null) {
         await openFile(new File([await res.blob()], msg.name || "document.pdf", { type: "application/pdf" }));
       }
     } catch (err) {
-      toast(`Couldn't open ${msg.name || "the file"}: ${err?.message || err}`);
+      console.warn("Open:", err);
+      toast(`Couldn't open ${msg.name || "this file"}.`);
     }
   } else if (msg.type === "saved" || msg.type === "save-cancelled" || msg.type === "save-failed") {
-    if (msg.type === "save-failed") toast(`Couldn't save: ${msg.error}`);
+    if (msg.type === "save-failed") { console.warn("Save:", msg.error); toast("Couldn't save the file. Try another name or folder."); }
     pendingSave?.(msg.type === "saved" ? msg.name : null);
     pendingSave = null;
   } else if (msg.type === "print-done") {
