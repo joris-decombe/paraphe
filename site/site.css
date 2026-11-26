@@ -15,6 +15,13 @@
   --muted: #5e4840;
   --rule: #dcb7a6;
   --field: #feede6;
+  /* Sunrise over the desk: apricot top left, rose top right, warm sand at the
+     bottom. Every stop keeps text, links and muted text above 4.5:1. */
+  --glow:
+    radial-gradient(70rem 45rem at 8% -6%, #ffd6a8 0%, transparent 65%),
+    radial-gradient(60rem 50rem at 104% 8%, #f7b9c7 0%, transparent 62%),
+    radial-gradient(80rem 60rem at 45% 104%, #f9c09e 0%, transparent 65%),
+    linear-gradient(180deg, #f6d5c3, #f1c9bd 55%, #f2cdb8);
   --sheet-shadow: 0 1px 2px rgb(60 25 10 / 0.12), 0 18px 50px rgb(60 25 10 / 0.18);
   /* On the sheet, which stays white in both modes. */
   --sheet-ink: #af4803;
@@ -41,6 +48,11 @@
     --text: #f3e9e5;
     --muted: #c3aca2;
     --rule: #47352d;
+    --glow:
+      radial-gradient(70rem 45rem at 8% -6%, #4a1e0a 0%, transparent 65%),
+      radial-gradient(60rem 50rem at 104% 8%, #3a0f26 0%, transparent 62%),
+      radial-gradient(80rem 60rem at 45% 104%, #43200e 0%, transparent 65%),
+      linear-gradient(180deg, #1f0f08, #1a0c09);
     --sheet-shadow: 0 2px 10px rgb(0 0 0 / 0.5), 0 24px 60px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -51,6 +63,8 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--desk);
+  background-image: var(--glow);
+  background-attachment: fixed; /* the sunrise stays put while the page scrolls */
   color: var(--text);
   font: 1.0625rem/1.6 var(--ui);
 }
@@ -174,7 +188,7 @@ code { font-size: 0.92em; }
 
 /* ---------- footer ---------- */
 
-footer { border-top: 1px solid var(--rule); background: var(--desk-2); padding-block: 1.75rem 2.5rem; font-size: 0.9rem; color: var(--muted); }
+footer { border-top: 1px solid var(--rule); background: color-mix(in srgb, var(--desk-2) 55%, transparent); padding-block: 1.75rem 2.5rem; font-size: 0.9rem; color: var(--muted); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 0.5rem 1.75rem; }
 footer a { color: var(--muted); }
 
