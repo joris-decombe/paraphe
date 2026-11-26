@@ -174,6 +174,11 @@ namespace Paraphe
                     skip.Skip = msg["version"] as string;
                     Updater.Save(skip);
                     break;
+                case "theme":
+                    TitleBar.Apply(this, msg.TryGetValue("dark", out object dark) && dark is bool d && d,
+                        msg.TryGetValue("caption", out object cap) ? cap as string : null,
+                        msg.TryGetValue("text", out object txt) ? txt as string : null);
+                    break;
                 case "update-restart":
                     _restartAfterUpdate = true;
                     Close();

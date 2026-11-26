@@ -15,6 +15,10 @@ On its start screen, **Install** copies it to `%LOCALAPPDATA%\Programs\Paraphe`
 and adds it to the Start menu and to **Open with**. **Settings** (the gear in
 the toolbar) has the rest:
 
+- **Appearance**: light, dark or follow the system, and a colour (blue, teal,
+  green, orange, pink or violet), each with a light and a dark side. The
+  title bar follows. Also in the web app, where Settings links to the Windows
+  download.
 - **Make Paraphe the default** shows Windows' own "Open with" list for PDFs:
   pick Paraphe, then **Always** (Windows doesn't let apps make themselves the
   default). The panel says which app opens your PDFs now.

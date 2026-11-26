@@ -4,6 +4,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import "./app.css";
 import bundledFiles from "virtual:pdf-assets";
 import { chooseSignature } from "./signature.js";
+import { THEMES, appearance, isDark, onAppearanceChange, setAppearance } from "./appearance.js";
 import {
   DATE_STYLES, formatDate, formatForField, formatValue, formats, numberSpecFromActions,
   regionChoices, resetFormats, setFormats, setSystemLocale, signedWord,
@@ -1280,9 +1281,8 @@ async function fromHost(msg, handle = null) {
       // Windows: install, default app, updates and uninstall live in Settings.
       $("#makeDefault").hidden = true;
       $("#installCard").hidden = !!(msg.installed || msg.registered);
-      $("#settingsBtn").hidden = false;
-      $("#emptySettings").hidden = false;
       renderSettings();
+      sendTheme();
       if (msg.updates === "ask") askAboutUpdates();
     } else {
       const b = $("#makeDefault");
@@ -1298,14 +1298,60 @@ async function fromHost(msg, handle = null) {
 
 let hostInfo = {};
 
+/* ---------- appearance ---------- */
+
+function renderAppearance() {
+  for (const b of document.querySelectorAll("#modeChoice [data-mode]")) {
+    b.setAttribute("aria-checked", String(b.dataset.mode === appearance.mode));
+  }
+  for (const b of document.querySelectorAll("#themeChoice [data-theme]")) {
+    b.setAttribute("aria-checked", String(b.dataset.theme === appearance.theme));
+  }
+}
+
+/** The Windows app colours its title bar to match the toolbar. */
+function sendTheme() {
+  if (!isWindowsApp()) return;
+  const bar = getComputedStyle($(".toolbar"));
+  host.postMessage({ type: "theme", dark: isDark(), caption: bar.backgroundColor, text: bar.color });
+}
+
+$("#themeChoice").replaceChildren(...THEMES.map((t) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "theme-swatch";
+  b.setAttribute("role", "radio");
+  b.dataset.theme = t.id;
+  const dot = document.createElement("i");
+  dot.className = "theme-dot";
+  dot.dataset.theme = t.id;
+  b.append(dot, t.name);
+  b.addEventListener("click", () => setAppearance({ theme: t.id }));
+  return b;
+}));
+for (const b of document.querySelectorAll("#modeChoice [data-mode]")) {
+  b.addEventListener("click", () => setAppearance({ mode: b.dataset.mode }));
+}
+onAppearanceChange(() => { renderAppearance(); sendTheme(); });
+
+const openSettings = () => { renderSettings(); $("#settingsDialog").showModal(); };
+$("#settingsBtn").addEventListener("click", openSettings);
+$("#emptySettings").addEventListener("click", openSettings);
+
+const isWindowsApp = () => !!hostInfo.features?.includes("updates");
+
 function renderSettings() {
+  renderAppearance();
+  for (const el of document.querySelectorAll("#settingsDialog [data-host]")) el.hidden = !isWindowsApp();
+  for (const el of document.querySelectorAll("#settingsDialog [data-web]")) el.hidden = !!host;
+  $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();
+  if (!isWindowsApp()) return;
   $("#autoUpdates").checked = hostInfo.updates === "on";
   $("#setDefault").hidden = !!hostInfo.isDefault;
   $("#defaultText").textContent = hostInfo.isDefault
     ? "Paraphe opens your PDFs."
     : `${hostInfo.defaultApp ? `PDFs open in ${hostInfo.defaultApp}.` : "PDFs open in another app."} ` +
       "Windows shows a list of apps: choose Paraphe, then Always.";
-  $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();
   const btn = $("#setInstallBtn");
   if (hostInfo.installed || hostInfo.registered) {
     $("#installText").textContent = hostInfo.installed
@@ -1404,9 +1450,6 @@ if (host) {
     window.__parapheMessage = (msg) => fromHost(msg || {});
   }
   $("#makeDefault").addEventListener("click", () => host.postMessage({ type: "make-default" }));
-  const openSettings = () => { renderSettings(); $("#settingsDialog").showModal(); };
-  $("#settingsBtn").addEventListener("click", openSettings);
-  $("#emptySettings").addEventListener("click", openSettings);
   $("#installBtn").addEventListener("click", () => host.postMessage({ type: "install" }));
   $("#setDefault").addEventListener("click", () => host.postMessage({ type: "default-app" }));
   $("#checkNow").addEventListener("click", () => host.postMessage({ type: "update-check" }));
