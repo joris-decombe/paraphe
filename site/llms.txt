@@ -1,12 +1,13 @@
 # Paraphe
 
-> Paraphe is a free, open-source (MIT) app to fill in and sign PDF forms: type into form fields, add text anywhere, tick or cross boxes, add today's date in the local format, and add a signature (drawn, typed or from a photo), then save a copy. It runs on Windows 10 and 11 as a small portable app, or in a web browser. It's a lightweight alternative to Adobe Acrobat Reader for people who only need to fill and sign forms. No account, no ads, no telemetry: documents never leave the computer, and scripts inside PDFs never run.
+> Paraphe is a free, open-source (MIT) app to fill in and sign PDF forms: type into form fields, add text anywhere, tick or cross boxes, add today's date in the local format, and add a signature (drawn, typed or from a photo), then save a copy. It runs on Windows 10 and 11 as a small portable app, on macOS 13 or newer (Apple silicon and Intel), or in a web browser. It's a lightweight alternative to Adobe Acrobat Reader for people who only need to fill and sign forms. No account, no ads, no telemetry: documents never leave the computer, and scripts inside PDFs never run.
 
 Made by Joris Decombe (https://dx2-66.com).
 
 ## Get it
 
 - [Download for Windows](https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-win-x64.zip): a zip; extract it and run Paraphe.exe. No install or admin rights needed. It can install itself for the current user and become the default PDF app.
+- [Download for Mac](https://github.com/joris-decombe/paraphe/releases/latest/download/Paraphe-macos.zip): a zip with Paraphe.app; move it to Applications. The first time, macOS asks to allow it in System Settings > Privacy & Security (Open Anyway). It makes no network connections and doesn't update itself.
 - [Use it in the browser](https://paraphe.dx2-66.com/app/): works in Edge, Chrome and Firefox; the page makes no network requests.
 - [Source code](https://github.com/joris-decombe/paraphe) and [all releases](https://github.com/joris-decombe/paraphe/releases).
 

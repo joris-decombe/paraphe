@@ -50,9 +50,10 @@ await mkdir(stage, { recursive: true });
 await execFile("ditto", [app, path.join(stage, "Paraphe.app")]);
 await writeFile(path.join(stage, "README.txt"), `Paraphe ${version}: fill and sign PDFs
 
-Copy Paraphe.app anywhere (for example /Applications) and open it. The first
-time, right-click it and choose Open: the app isn't signed with an Apple
-developer certificate, so macOS asks you to confirm it once.
+Move Paraphe.app to your Applications folder and open it. The first time,
+macOS won't open it because it isn't signed with an Apple developer
+certificate: open System Settings > Privacy & Security, scroll down and click
+Open Anyway. macOS asks once.
 
 Paraphe makes no network connections. Signatures you save are kept on this
 computer only.
