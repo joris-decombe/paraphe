@@ -1400,16 +1400,27 @@ function askAboutUpdates() {
 
 function onUpdate(msg) {
   const status = (t) => { $("#updateStatus").textContent = t; };
+  // The Settings button follows the update: Check now, Update, Restart now.
+  const button = (label, act) => {
+    const b = $("#checkNow");
+    b.textContent = label;
+    b.dataset.act = act;
+    b.disabled = act === "busy";
+    b.className = act === "update" || act === "restart" ? "btn primary" : "btn";
+  };
   const later = () => updateBar(null);
   switch (msg.state) {
     case "checking":
       status("Checking…");
+      button("Check now", "busy");
       break;
     case "none":
       status("Paraphe is up to date.");
+      button("Check now", "check");
       break;
     case "available":
       status("A new version is available.");
+      button("Update", "update");
       updateBar("A new version of Paraphe is available.", [
         ["Update", () => host.postMessage({ type: "update-download" }), true],
         ["Later", later],
@@ -1419,6 +1430,7 @@ function onUpdate(msg) {
     case "manual":
       // This copy's folder isn't writable (e.g. Program Files): download by hand.
       status("A new version is available.");
+      button("Download", "download");
       updateBar("A new version of Paraphe is available.", [
         ["Download", () => { window.open("https://github.com/joris-decombe/paraphe/releases/latest"); later(); }, true],
         ["Later", later],
@@ -1426,10 +1438,12 @@ function onUpdate(msg) {
       break;
     case "downloading":
       status("Downloading the update…");
+      button("Update", "busy");
       updateBar("Downloading the update…");
       break;
     case "ready":
       status("The update installs when you close Paraphe.");
+      button("Restart now", "restart");
       updateBar("The update is ready. It installs when you close Paraphe.", [
         ["Restart now", () => host.postMessage({ type: "update-restart" }), true],
         ["Later", later],
@@ -1439,6 +1453,7 @@ function onUpdate(msg) {
       // The details stay in the console; people get what to do.
       console.warn("Update:", msg.error);
       status("Couldn't update Paraphe. Try again later.");
+      button("Check now", "check");
       if (!msg.manual) updateBar("Couldn't update Paraphe. Try again later.", [["OK", later]]);
       break;
   }
@@ -1458,7 +1473,13 @@ if (host) {
     host.postMessage({ type: "default-app" });
     toast("Pick Paraphe, then Always.");
   });
-  $("#checkNow").addEventListener("click", () => host.postMessage({ type: "update-check" }));
+  $("#checkNow").addEventListener("click", (e) => {
+    const act = e.currentTarget.dataset.act || "check";
+    if (act === "update") host.postMessage({ type: "update-download" });
+    else if (act === "restart") host.postMessage({ type: "update-restart" });
+    else if (act === "download") window.open("https://github.com/joris-decombe/paraphe/releases/latest");
+    else host.postMessage({ type: "update-check" });
+  });
   $("#autoUpdates").addEventListener("change", (e) => {
     if (hostInfo.updates === "ask") updateBar(null);
     setUpdatesMode(e.target.checked ? "on" : "off");
