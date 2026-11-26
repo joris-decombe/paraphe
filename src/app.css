@@ -19,6 +19,9 @@
   /* text */
   --text: light-dark(#1f232a, #e8eaee);
   --muted: light-dark(#646b76, #9aa1ad);
+  /* the desk's gradient: two hues either side of the ink's */
+  --glow-1: light-dark(#d9d3ff, #18122c);
+  --glow-2: light-dark(#b6e1f1, #011b23);
   --danger: light-dark(#b3261e, #ff8a80);
   /* shape */
   --bar-h: 54px;
@@ -55,6 +58,8 @@
   --line: light-dark(#d2e8e8, #283e3e);
   --text: light-dark(#122525, #e3eeee);
   --muted: light-dark(#496766, #93aead);
+  --glow-1: light-dark(#ade3f5, #011b22);
+  --glow-2: light-dark(#c3e3c8, #031d0a);
 }
 :root[data-theme="green"], .theme-dot[data-theme="green"] {
   --ink: light-dark(#057836, #8ad299);
@@ -68,6 +73,8 @@
   --line: light-dark(#d8e8db, #2f3d32);
   --text: light-dark(#19251b, #e6eee7);
   --muted: light-dark(#536656, #9bad9e);
+  --glow-1: light-dark(#b0e7d7, #001d16);
+  --glow-2: light-dark(#dddcb6, #1a1801);
 }
 :root:not([data-theme]), :root[data-theme="orange"], .theme-dot[data-theme="orange"] {
   --ink: light-dark(#af4803, #fea47b);
@@ -81,6 +88,8 @@
   --line: light-dark(#f2ded5, #47352d);
   --text: light-dark(#2c1e18, #f3e9e5);
   --muted: light-dark(#725a50, #b9a298);
+  --glow-1: light-dark(#f3d3af, #241300);
+  --glow-2: light-dark(#f6ccd8, #290c16);
 }
 :root[data-theme="pink"], .theme-dot[data-theme="pink"] {
   --ink: light-dark(#b5236e, #ff9ac2);
@@ -94,6 +103,8 @@
   --line: light-dark(#f1dde4, #45333a);
   --text: light-dark(#2b1d22, #f2e8eb);
   --muted: light-dark(#715861, #b8a0a9);
+  --glow-1: light-dark(#ffcac9, #2a0c0d);
+  --glow-2: light-dark(#e3d1f2, #1e1028);
 }
 :root[data-theme="violet"], .theme-dot[data-theme="violet"] {
   --ink: light-dark(#7137b6, #c9acfe);
@@ -107,11 +118,21 @@
   --line: light-dark(#e5e0f1, #3b3646);
   --text: light-dark(#231f2c, #ece9f2);
   --muted: light-dark(#635c72, #aaa4b8);
+  --glow-1: light-dark(#eeccef, #220e24);
+  --glow-2: light-dark(#c4dbfa, #06172d);
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--desk); overflow: hidden; }
+body {
+  background: var(--desk);
+  /* Light from two corners, in the theme's neighbouring hues, at the desk's
+     own lightness so text on it keeps its contrast. */
+  background-image:
+    radial-gradient(70rem 50rem at 0% 0%, var(--glow-1), transparent 70%),
+    radial-gradient(70rem 55rem at 100% 100%, var(--glow-2), transparent 70%);
+  overflow: hidden;
+}
 button, input, select { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 2px solid var(--ink-ring); outline-offset: 2px; }
@@ -324,8 +345,11 @@ body.has-doc .empty { display: none; }
   margin: 0 0 8px; font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   font-size: clamp(28px, 4vw, 38px); font-weight: 650; letter-spacing: -0.025em; line-height: 1.1;
 }
-.empty .lede { margin: 0 0 22px; color: var(--muted); font-size: 15px; }
-.empty .fine { margin: 22px 0 0; color: var(--muted); font-size: 12.5px; }
+/* On the desk, muted text and links go a step darker than on white bars. */
+.empty { --desk-muted: color-mix(in srgb, var(--text) 40%, var(--muted)); }
+.empty .link-btn { color: var(--ink-strong); }
+.empty .lede { margin: 0 0 22px; color: var(--desk-muted); font-size: 15px; }
+.empty .fine { margin: 22px 0 0; color: var(--desk-muted); font-size: 12.5px; }
 .empty .make-default { margin-top: 10px; }
 
 .drop-veil {
