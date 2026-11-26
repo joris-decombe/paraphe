@@ -46,19 +46,26 @@ Either way the page runs entirely on your computer.
 
 ## Release
 
-1. Raise `version` in `package.json`, then `npm run build:app`. It also writes
-   `dist/update.json`, which the updater reads.
-2. `node tools/sign-update.mjs` signs it with the release key (kept outside
-   the repo, by default `%USERPROFILE%\.paraphe\release-signing-key.pem`;
-   `node tools/keygen.mjs` made it once) and writes `dist/update.json.sig`.
-3. `gh release create v<version> dist/Paraphe-<version>-win-x64.zip
-   dist/Paraphe-win-x64.zip dist/update.json dist/update.json.sig`: the
-   version-free zip keeps `releases/latest/download/Paraphe-win-x64.zip`
-   pointing at the newest build, and installed copies find the update.
-4. Update https://paraphe.dx2-66.com: `npm run build:site` writes `dist/site/`,
-   the showcase pages (`site/`, English and French) with the web app at
-   `/app/`. Replace `apps/paraphe/` in the dx2-66 repo with its contents and
-   open a pull request there. Merging it deploys the site.
+Raise `version` in `package.json`, merge to main, then on main:
+
+```
+npm run release -- notes.md
+```
+
+(`notes.md` is optional; without it GitHub writes the notes.) `tools/release.mjs`:
+
+1. checks that main is clean and pushed, and that the version isn't released;
+2. builds the Windows zip and the site (`dist/site/`: the showcase pages and
+   the web app at `/app/`), and packs the site as `paraphe-site.tar.gz`;
+3. writes both hashes into `dist/update.json` and signs it with the release
+   key (kept outside the repo, by default
+   `%USERPROFILE%\.paraphe\release-signing-key.pem`; `node tools/keygen.mjs`
+   made it once);
+4. creates the GitHub release with the zip (also as the version-free
+   `Paraphe-win-x64.zip`, for the `latest` link), the site, `update.json` and
+   `update.json.sig`. Installed copies find the update there;
+5. starts the Paraphe workflow in joris-decombe/dx2-66, which checks the
+   signature and the site's hash, then deploys https://paraphe.dx2-66.com.
 
 Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 
