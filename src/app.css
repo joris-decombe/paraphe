@@ -264,7 +264,7 @@ body:not(.has-doc) .dock { display: none; }
 
 /* ---------- desk and pages ---------- */
 
-#viewerContainer { position: absolute; inset: var(--top) 0 0 0; overflow: auto; outline: none; }
+#viewerContainer { position: absolute; inset: var(--view-top, var(--top)) 0 0 0; overflow: auto; outline: none; }
 #viewerContainer .pdfViewer { padding-bottom: 96px; } /* room under the dock */
 /* Pages stay paper-white: what is drawn on them uses the light side of the theme. */
 .pdfViewer .page { box-shadow: var(--page-shadow); }
@@ -282,7 +282,7 @@ body:not(.has-doc) #viewerContainer { visibility: hidden; }
 
 :root { --sidebar-w: 280px; }
 .sidebar {
-  position: absolute; top: var(--top); bottom: 0; left: 0; width: var(--sidebar-w); z-index: 5;
+  position: absolute; top: var(--view-top, var(--top)); bottom: 0; left: 0; width: var(--sidebar-w); z-index: 5;
   background: var(--surface); border-right: 1px solid var(--line); overflow: auto; padding: 14px 10px 24px;
 }
 body.sidebar-open #viewerContainer { left: var(--sidebar-w); }
@@ -603,3 +603,31 @@ body.has-tabs { --tab-h: 36px; }
 }
 .tab-add { font-size: 17px; align-self: center; margin-left: 4px; }
 .tab-close:hover, .tab-add:hover { background: var(--ink-soft); color: var(--text); }
+
+/* ---------- reading view ---------- */
+
+.popover.down { bottom: auto; top: calc(100% + 8px); left: auto; right: 0; transform: none; width: 220px; padding: 6px; }
+#fillBtn, #readBtn, #moreWrap { display: none; }
+body.has-doc:not(.reading) #readBtn { display: inline-flex; }
+body.reading.has-doc #fillBtn { display: inline-flex; }
+body.reading.has-doc #moreWrap { display: inline-flex; }
+body.reading.has-doc {
+  --view-top: 0px;
+}
+body.reading.has-doc .toolbar {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.22s ease;
+}
+body.reading.has-doc.bar-hidden .toolbar { transform: translateY(-100%); }
+body.reading.has-doc.bar-hidden .tabbar { transform: translateY(calc(-100% - var(--bar-h))); }
+body.reading.has-doc .tabbar { transition: transform 0.22s ease; }
+body.reading.has-doc .toolbar:focus-within { transform: none; }
+body.reading.has-doc .brand-name, body.reading.has-doc #open, body.reading.has-doc #printBtn,
+body.reading.has-doc #settingsBtn, body.reading.has-doc .bar-sep, body.reading.has-doc #zoomSelect,
+body.reading.has-doc .dock { display: none; }
+body.reading.has-doc #save { display: none; }
+body.reading.has-doc.dirty #save { display: inline-flex; }
+/* The first page starts under the floating bar. */
+body.reading.has-doc #viewerContainer .pdfViewer { padding-top: var(--top); }
+body.reading.has-doc .sidebar { padding-top: var(--top); box-sizing: border-box; }
