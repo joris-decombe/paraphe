@@ -131,6 +131,7 @@ function undo() {
 
 function markDirty() {
   state.dirty = true;
+  if (reading) setReading(false);
   updateChrome();
 }
 
@@ -384,6 +385,7 @@ function useSpot(spot, pageIndex) {
 
 function setSpots(on) {
   state.showSpots = on;
+  if (on && reading) setReading(false);
   $("#spotsBtn").setAttribute("aria-pressed", String(on));
   layoutAllSpots();
   if (on && state.doc) toast("Dotted spots are likely places to fill in. Click one.");
@@ -577,6 +579,7 @@ const HINTS = {
 function setTool(tool) {
   if (state.editingId) finishEditing(state.editingId);
   state.tool = tool;
+  if (tool !== "select" && reading) setReading(false);
   if (tool !== "sign") state.pendingImage = null;
   document.body.dataset.tool = tool;
   updateChrome();
@@ -598,6 +601,7 @@ function updateChrome() {
   $("#undo").disabled = state.undo.length === 0;
   for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn", "#spotsBtn"]) $(id).disabled = !hasDoc;
   syncTabDirty();
+  document.body.classList.toggle("dirty", state.dirty);
   $("#fileName").textContent = state.fileName ? `${state.fileName}${state.dirty ? " •" : ""}` : "";
   const hint = HINTS[state.tool];
   $("#hint").textContent = hint || "";
@@ -707,6 +711,11 @@ document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && (e.key === "Tab" || e.key === "PageDown" || e.key === "PageUp")) {
     e.preventDefault();
     stepTab(e.key === "PageUp" || (e.key === "Tab" && e.shiftKey) ? -1 : 1);
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "e") {
+    e.preventDefault();
+    if (state.doc) setReading(!reading);
     return;
   }
   if (mod && e.key.toLowerCase() === "o") {
@@ -1235,6 +1244,7 @@ async function openFile(file, handle = null) {
     setTitle();
     doc.annotationStorage.onSetModified = () => markDirty();
     document.body.classList.add("has-doc");
+    if (!asTab) setReading(readingPref);
     pendingView = null;
     viewer.setDocument(doc);
     linkService.setDocument(doc);
@@ -1260,6 +1270,77 @@ async function openFile(file, handle = null) {
   }
   updateChrome();
 }
+
+// ---------------------------------------------------------------------------
+// Reading view: just the page. The bar floats over it and tucks away while you
+// scroll down; Fill & sign (Ctrl+E) brings back the full interface, and
+// editing anything does the same.
+// ---------------------------------------------------------------------------
+
+const READING_KEY = "paraphe.reading";
+let readingPref = true;
+try {
+  readingPref = localStorage.getItem(READING_KEY) !== "0";
+} catch {
+  // Storage blocked: reading view stays on.
+}
+let reading = false;
+let lastScrollTop = 0;
+
+function setReading(on) {
+  reading = on;
+  document.body.classList.toggle("reading", on);
+  document.body.classList.remove("bar-hidden");
+  toggleMore(false);
+  renderTabs();
+  lastScrollTop = $("#viewerContainer").scrollTop;
+}
+
+function setBarHidden(hide) {
+  if (hide && (!$("#findbar").hidden || !$("#morePop").hidden || $(".toolbar").matches(":hover, :focus-within"))) return;
+  document.body.classList.toggle("bar-hidden", hide);
+}
+
+function toggleMore(open = $("#morePop").hidden) {
+  $("#morePop").hidden = !open;
+  $("#moreBtn").setAttribute("aria-expanded", String(open));
+}
+
+$("#viewerContainer").addEventListener("scroll", () => {
+  if (!reading) return;
+  const top = $("#viewerContainer").scrollTop;
+  const delta = top - lastScrollTop;
+  if (Math.abs(delta) < 8) return;
+  lastScrollTop = top;
+  setBarHidden(delta > 0 && top > 60);
+}, { passive: true });
+document.addEventListener("pointermove", (e) => {
+  if (reading && e.clientY < 48 && document.body.classList.contains("bar-hidden")) setBarHidden(false);
+}, { passive: true });
+document.addEventListener("pointerdown", (e) => {
+  if (reading && e.clientY < 40) setBarHidden(false);
+  if (!$("#morePop").hidden && !e.target.closest("#moreWrap")) toggleMore(false);
+});
+$("#moreBtn").addEventListener("click", () => toggleMore());
+$("#morePop").addEventListener("click", (e) => {
+  const act = e.target.closest("[data-more]")?.dataset.more;
+  if (!act) return;
+  toggleMore(false);
+  if (act === "open") chooseFile();
+  else if (act === "print") printDocument();
+  else if (act === "settings") openSettings();
+});
+$("#fillBtn").addEventListener("click", () => setReading(false));
+$("#readBtn").addEventListener("click", () => setReading(true));
+$("#readingOn").addEventListener("change", (e) => {
+  readingPref = e.target.checked;
+  try {
+    if (readingPref) localStorage.removeItem(READING_KEY);
+    else localStorage.setItem(READING_KEY, "0");
+  } catch {
+    // Storage blocked: the choice lasts until the page closes.
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Tabs (opt-in: Settings > Tabs). Each tab keeps its own document, placed
@@ -1358,6 +1439,7 @@ function showNothing() {
   $("#outline").replaceChildren();
   $("#sidebarToggle").hidden = true;
   setSidebar(false);
+  setReading(false);
   setTitle();
   renderTabs();
   updateChrome();
@@ -1391,7 +1473,8 @@ const tabLabel = (t) => (t === activeTab ? state.fileName : t.fileName).replace(
 
 function renderTabs() {
   const bar = $("#tabbar");
-  const show = tabs.length > 1 || (tabsOn && tabs.length > 0);
+  // In reading view a lone tab would only be clutter.
+  const show = tabs.length > 1 || (tabsOn && tabs.length > 0 && !reading);
   bar.hidden = !show;
   document.body.classList.toggle("has-tabs", show);
   if (!show) return void bar.replaceChildren();
@@ -1739,6 +1822,7 @@ const isWindowsApp = () => !!hostInfo.features?.includes("updates");
 function renderSettings() {
   renderAppearance();
   $("#tabsOn").checked = tabsOn;
+  $("#readingOn").checked = readingPref;
   for (const el of document.querySelectorAll("#settingsDialog [data-host]")) el.hidden = !isWindowsApp();
   for (const el of document.querySelectorAll("#settingsDialog [data-web]")) el.hidden = !!host;
   $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();

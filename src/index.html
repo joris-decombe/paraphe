@@ -71,9 +71,23 @@ try {
         <svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg>
       </button>
     </div>
+    <span class="pop-anchor" id="moreWrap">
+      <button id="moreBtn" class="tool" title="More" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></svg>
+      </button>
+      <div id="morePop" class="popover down" role="menu" hidden>
+        <button type="button" class="choice" role="menuitem" data-more="open">Open a PDF <small>Ctrl+O</small></button>
+        <button type="button" class="choice" role="menuitem" data-more="print">Print <small>Ctrl+P</small></button>
+        <button type="button" class="choice" role="menuitem" data-more="settings">Settings</button>
+      </div>
+    </span>
     <button id="settingsBtn" class="tool" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24"><path d="M18.77 9.54L21.42 10.17L21.42 13.83L18.77 14.46L18.53 15.04L19.96 17.37L17.37 19.96L15.04 18.53L14.46 18.77L13.83 21.42L10.17 21.42L9.54 18.77L8.96 18.53L6.63 19.96L4.04 17.37L5.47 15.04L5.23 14.46L2.58 13.83L2.58 10.17L5.23 9.54L5.47 8.96L4.04 6.63L6.63 4.04L8.96 5.47L9.54 5.23L10.17 2.58L13.83 2.58L14.46 5.23L15.04 5.47L17.37 4.04L19.96 6.63L18.53 8.96Z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
+    <button id="readBtn" class="tool" title="Reading view (Ctrl+E)" aria-label="Reading view">
+      <svg viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5v13"/></svg>
+    </button>
+    <button id="fillBtn" class="btn primary" title="Fill in and sign (Ctrl+E)">Fill &amp; sign</button>
     <button id="save" class="btn primary" title="Save a copy (Ctrl+S)">Save</button>
   </div>
 </header>
@@ -203,6 +217,12 @@ try {
         <button type="button" role="radio" data-mode="dark">Dark</button>
       </div>
       <div id="themeChoice" class="themes" role="radiogroup" aria-label="Colour"></div>
+    </section>
+    <section class="set-row">
+      <div>
+        <h3>Reading view</h3>
+        <label class="check-row"><input type="checkbox" id="readingOn"> Open PDFs with just the page</label>
+      </div>
     </section>
     <section class="set-row">
       <div>

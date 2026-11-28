@@ -78,6 +78,7 @@ Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 
 | To | Do |
 |---|---|
+| Just read | A PDF opens in reading view: the page and a slim bar that tucks away as you scroll down. **Fill & sign** (`Ctrl+E`) brings back every tool, and starting to edit does it for you. Settings can turn reading view off |
 | Fill a form | Click its fields and type, as usual |
 | Fill a flat PDF | Some PDFs look like forms but have no fields. The dashed-box button in the toolbar marks likely places to write (lines after a label, empty boxes, small squares). Click one to type or tick there |
 | Write anywhere | **Text** tool, click, type. Double-click to edit later |
