@@ -75,6 +75,7 @@ Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 | To | Do |
 |---|---|
 | Fill a form | Click its fields and type, as usual |
+| Fill a flat PDF | Some PDFs look like forms but have no fields. The dashed-box button in the toolbar marks likely places to write (lines after a label, empty boxes, small squares). Click one to type or tick there |
 | Write anywhere | **Text** tool, click, type. Double-click to edit later |
 | Tick a box | **✓** or **✗** tool, click each box, **Esc** when done |
 | Add today's date | **Date** tool, click |
@@ -111,6 +112,7 @@ when you choose to update. Those requests carry your IP address and a generic
 
 - Form scripts (auto-calculated totals, formatting) don't run. That's on
   purpose: scripts in PDFs are a common way to attack PDF readers.
+- Finding places to fill in on flat PDFs is a best guess from the page's text and lines: it can miss a spot or suggest an extra one, and it doesn't read scanned pages.
 - XFA-only forms and CJK text in added text boxes aren't supported.
 - This is a visual signature, not a cryptographic digital signature.
 

@@ -303,6 +303,14 @@ body.sidebar-open .dock { left: calc(50% + var(--sidebar-w) / 2); }
 body:not([data-tool="select"]) .pp-overlay { pointer-events: auto; cursor: crosshair; }
 body[data-tool="text"] .pp-overlay, body[data-tool="date"] .pp-overlay { cursor: text; }
 
+.pp-spots { position: absolute; inset: 0; pointer-events: none; }
+.pp-spot {
+  position: absolute; box-sizing: border-box; pointer-events: auto; cursor: pointer;
+  border: 1.5px dashed var(--ink); border-radius: 3px; background: var(--ink-soft);
+}
+.pp-spot:hover { background: var(--ink-ring); }
+.pp-spot[hidden] { display: none; }
+
 .pp-item { position: absolute; pointer-events: auto; cursor: move; touch-action: none; }
 .pp-item::after {
   content: ""; position: absolute; inset: -3px; border-radius: 3px; pointer-events: none;
