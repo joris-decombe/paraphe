@@ -242,6 +242,14 @@ try {
         <label class="check-row"><input type="checkbox" id="tabsOn"> Open each PDF in its own tab</label>
       </div>
     </section>
+    <section class="set-row">
+      <div>
+        <h3>Digital signature</h3>
+        <p id="certText"></p>
+        <label class="check-row" id="signOnRow" hidden><input type="checkbox" id="signOn"> Sign when saving</label>
+      </div>
+      <button type="button" id="certBtn" class="btn">Choose…</button>
+    </section>
     <section class="set-row" data-host>
       <div>
         <h3>Default PDF app</h3>
@@ -287,6 +295,19 @@ try {
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="printContainer" aria-hidden="true"></div>
 <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+<input id="certInput" type="file" accept=".p12,.pfx,application/x-pkcs12" hidden>
+<dialog id="certDialog" class="sig-dialog">
+  <form class="sig-card" id="certForm">
+    <header class="sig-head">
+      <h2>Certificate password</h2>
+      <button type="button" class="icon-btn" id="certCancel" aria-label="Close">✕</button>
+    </header>
+    <p id="certFile" class="set-status"></p>
+    <input type="password" id="certPw" class="type-input" autocomplete="off" placeholder="Password" aria-label="Password">
+    <p id="certErr" class="set-status" role="alert"></p>
+    <button type="submit" class="btn primary">Use certificate</button>
+  </form>
+</dialog>
 
 <script type="module">/*JS*/</script>
 </body>

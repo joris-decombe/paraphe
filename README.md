@@ -23,6 +23,12 @@ the toolbar) has the rest:
   edits and undo, instead of replacing the current one. `Ctrl+Tab` switches,
   `Ctrl+W` closes. On Windows, a PDF opened from Explorer joins the running
   window; on macOS, Finder already does.
+- **Digital signature** (off by default, in Settings): choose a certificate file
+  (.p12 or .pfx, RSA) and Save also signs the PDF with it, so anyone can check it
+  wasn't changed afterwards. It stays on your device and is never saved. It is
+  the last step: change the PDF after signing and the signature breaks. A
+  certificate you made yourself shows as an unknown signer in Acrobat. No
+  timestamp (that needs the network).
 - **Make Paraphe the default** shows Windows' own "Open with" list for PDFs:
   pick Paraphe, then **Always** (Windows doesn't let apps make themselves the
   default). The panel says which app opens your PDFs now.
@@ -120,7 +126,7 @@ when you choose to update. Those requests carry your IP address and a generic
   purpose: scripts in PDFs are a common way to attack PDF readers.
 - Finding places to fill in on flat PDFs is a best guess from the page's text and lines: it can miss a spot or suggest an extra one, and it doesn't read scanned pages.
 - XFA-only forms and CJK text in added text boxes aren't supported.
-- This is a visual signature, not a cryptographic digital signature.
+- Without a certificate, the signature is a picture, not a cryptographic one. Digital signing takes RSA certificates only, and can't sign password-protected PDFs.
 
 ## License
 

@@ -5,6 +5,7 @@ import "./app.css";
 import bundledFiles from "virtual:pdf-assets";
 import { chooseSignature } from "./signature.js";
 import { detectSpots } from "./fields.js";
+import { readCertificate, signPdf } from "./digisign.js";
 import { THEMES, appearance, isDark, onAppearanceChange, setAppearance } from "./appearance.js";
 import {
   DATE_STYLES, formatDate, formatForField, formatValue, formats, numberSpecFromActions,
@@ -1360,6 +1361,88 @@ document.addEventListener("keydown", (e) => {
 }, true);
 
 // ---------------------------------------------------------------------------
+// Digital signature (optional): a certificate file, kept in memory only
+// ---------------------------------------------------------------------------
+
+const SIGN_KEY = "paraphe.signing";
+let cert = null;
+let signOn = false;
+try {
+  signOn = localStorage.getItem(SIGN_KEY) === "1";
+} catch {
+  // Storage blocked: off.
+}
+
+function setSignOn(on) {
+  signOn = on;
+  try {
+    if (on) localStorage.setItem(SIGN_KEY, "1");
+    else localStorage.removeItem(SIGN_KEY);
+  } catch {
+    // Storage blocked: the choice lasts until the page closes.
+  }
+}
+
+/** Asks for a .p12/.pfx and its password. Resolves true once a certificate is loaded. */
+function pickCertificate() {
+  return new Promise((resolve) => {
+    const input = $("#certInput");
+    input.onchange = async () => {
+      const file = input.files[0];
+      input.value = "";
+      resolve(file ? await askCertPassword(new Uint8Array(await file.arrayBuffer()), file.name) : false);
+    };
+    input.oncancel = () => resolve(false);
+    input.click();
+  });
+}
+
+function askCertPassword(bytes, fileName) {
+  const dlg = $("#certDialog");
+  $("#certFile").textContent = fileName;
+  $("#certPw").value = "";
+  $("#certErr").textContent = "";
+  return new Promise((resolve) => {
+    const done = (ok) => {
+      $("#certForm").onsubmit = null;
+      $("#certCancel").onclick = null;
+      dlg.onclose = null;
+      $("#certPw").value = "";
+      if (dlg.open) dlg.close();
+      resolve(ok);
+    };
+    $("#certForm").onsubmit = (e) => {
+      e.preventDefault();
+      try {
+        cert = readCertificate(bytes, $("#certPw").value);
+        done(true);
+      } catch (err) {
+        $("#certErr").textContent = err.message;
+      }
+    };
+    $("#certCancel").onclick = () => done(false);
+    dlg.onclose = () => done(false);
+    dlg.showModal();
+    $("#certPw").focus();
+  });
+}
+
+function renderCert() {
+  $("#certText").textContent = cert
+    ? `${cert.name}. Valid until ${cert.until.toLocaleDateString()}.${cert.selfSigned ? " Made by you, so others may see an unknown signer." : ""}`
+    : "Sign with your own certificate (.p12 or .pfx).";
+  $("#certBtn").textContent = cert ? "Change…" : "Choose…";
+  $("#signOnRow").hidden = !cert;
+  $("#signOn").checked = signOn && !!cert;
+}
+
+$("#certBtn").addEventListener("click", async () => {
+  if (await pickCertificate()) setSignOn(true);
+  renderCert();
+});
+$("#signOn").addEventListener("change", (e) => setSignOn(e.target.checked));
+
+// ---------------------------------------------------------------------------
 // Reading view: just the page. The bar floats over it and tucks away while you
 // scroll down; Fill & sign (Ctrl+E) brings back the full interface, and
 // editing anything does the same.
@@ -1720,12 +1803,24 @@ async function save() {
   } finally {
     btn.disabled = false;
   }
+  // The digital signature goes on last: any later change would break it.
+  let digital = false;
+  if (signOn) {
+    if (!cert && !(await pickCertificate())) return void toast("Not saved: no certificate chosen.");
+    try {
+      bytes = await signPdf(bytes, cert);
+      digital = true;
+    } catch (err) {
+      console.warn("Sign:", err);
+      return void toast(`Not saved. ${err.message}`);
+    }
+  }
   const name = `${state.fileName.replace(/\.pdf$/i, "")} (${signedWord()}).pdf`;
   const saved = await writeFile(bytes, name);
   if (saved) {
     state.dirty = false;
     updateChrome();
-    toast(`Saved ${saved}`);
+    toast(`Saved ${saved}${digital ? ", digitally signed" : ""}`);
   }
 }
 
@@ -1911,6 +2006,7 @@ function renderSettings() {
   renderAppearance();
   $("#tabsOn").checked = tabsOn;
   $("#readingOn").checked = readingPref;
+  renderCert();
   for (const el of document.querySelectorAll("#settingsDialog [data-host]")) el.hidden = !isWindowsApp();
   for (const el of document.querySelectorAll("#settingsDialog [data-web]")) el.hidden = !!host;
   $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();
