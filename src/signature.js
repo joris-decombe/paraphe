@@ -1,22 +1,35 @@
 // Signature dialog: draw, type or import a signature, keep a few for reuse.
 // Signatures are stored only in this browser's localStorage.
 
-const STORE_KEY = "paraphe.signatures";
+const STORE_KEYS = { signature: "paraphe.signatures", initials: "paraphe.initials" };
+// Words that differ between the two kinds of mark.
+const WORDS = {
+  signature: {
+    title: "Signature", use: "Use signature", saved: "Use this signature", savedAlt: "Saved signature",
+    del: "Delete saved signature", placeholder: "Your name", sample: "Your name",
+    pad: "Sign with your mouse, pen or finger", image: "Choose a photo or scan of your signature",
+  },
+  initials: {
+    title: "Initials", use: "Use initials", saved: "Use these initials", savedAlt: "Saved initials",
+    del: "Delete saved initials", placeholder: "Your initials", sample: "JD",
+    pad: "Write your initials with your mouse, pen or finger", image: "Choose a photo or scan of your initials",
+  },
+};
 const SCRIPT_FONTS = ["Segoe Script", "Ink Free", "Lucida Handwriting", "Segoe Print"];
 const INKS = { black: "#111111", blue: "#1f3fa8" };
 
-export function loadSaved() {
+export function loadSaved(kind = "signature") {
   try {
-    const list = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+    const list = JSON.parse(localStorage.getItem(STORE_KEYS[kind]) || "[]");
     return Array.isArray(list) ? list.filter((s) => typeof s?.src === "string") : [];
   } catch {
     return [];
   }
 }
 
-function storeSaved(list) {
+function storeSaved(list, kind = "signature") {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    localStorage.setItem(STORE_KEYS[kind], JSON.stringify(list));
   } catch {
     // Storage full or disabled: the signature still works for this session.
   }
@@ -237,8 +250,9 @@ function build() {
 /**
  * Open the dialog. Resolves with a PNG data URL, or null if cancelled.
  */
-export function chooseSignature() {
+export function chooseSignature(kind = "signature") {
   if (!dialog) build();
+  const words = WORDS[kind];
   const $ = (s) => dialog.querySelector(s);
   const $$ = (s) => [...dialog.querySelectorAll(s)];
 
@@ -259,7 +273,7 @@ export function chooseSignature() {
     };
 
     const renderSaved = () => {
-      const saved = loadSaved();
+      const saved = loadSaved(kind);
       $(".sig-saved").hidden = saved.length === 0;
       $(".sig-new-title").hidden = saved.length === 0;
       const list = $(".sig-saved-list");
@@ -267,12 +281,15 @@ export function chooseSignature() {
         ...saved.map((s) => {
           const item = document.createElement("div");
           item.className = "saved-item";
-          item.innerHTML = `<button type="button" class="saved-use" title="Use this signature"><img alt="Saved signature"></button>
-            <button type="button" class="saved-del" title="Delete" aria-label="Delete saved signature">✕</button>`;
+          item.innerHTML = `<button type="button" class="saved-use"><img></button>
+            <button type="button" class="saved-del" title="Delete">✕</button>`;
+          item.querySelector(".saved-use").title = words.saved;
+          item.querySelector("img").alt = words.savedAlt;
+          item.querySelector(".saved-del").setAttribute("aria-label", words.del);
           item.querySelector("img").src = s.src;
           item.querySelector(".saved-use").onclick = () => done(s.src);
           item.querySelector(".saved-del").onclick = () => {
-            storeSaved(loadSaved().filter((x) => x.id !== s.id));
+            storeSaved(loadSaved(kind).filter((x) => x.id !== s.id), kind);
             renderSaved();
           };
           return item;
@@ -281,7 +298,7 @@ export function chooseSignature() {
     };
 
     const renderFonts = () => {
-      const text = $(".type-input").value.trim() || "Your name";
+      const text = $(".type-input").value.trim() || words.sample;
       $(".font-list").replaceChildren(
         ...SCRIPT_FONTS.map((f) => {
           const b = document.createElement("button");
@@ -361,16 +378,21 @@ export function chooseSignature() {
         return;
       }
       if ($(".keep").checked) {
-        const saved = loadSaved();
+        const saved = loadSaved(kind);
         // randomUUID needs a secure context, which a custom app scheme may not be.
         const id = crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
         saved.unshift({ id, src, created: Date.now() });
-        storeSaved(saved.slice(0, 8));
+        storeSaved(saved.slice(0, 8), kind);
       }
       done(src);
     });
 
     // Reset the "new" panel each time.
+    $(".sig-head h2").textContent = words.title;
+    $("[data-act=use]").textContent = words.use;
+    $(".type-input").placeholder = words.placeholder;
+    $(".pad-actions .hint").textContent = words.pad;
+    $(".drop-img-text").textContent = words.image;
     $(".type-input").value = "";
     $(".drop-img img").hidden = true;
     $(".drop-img-text").hidden = false;
