@@ -64,6 +64,8 @@ namespace Paraphe
             public string Updates { get; set; } = "ask";
             public DateTime LastCheck { get; set; } = DateTime.MinValue;
             public string Skip { get; set; }
+            /// <summary>Tabs on (Settings): a PDF opened from Explorer joins the running window.</summary>
+            public bool Tabs { get; set; }
         }
 
         private static string SettingsPath => Path.Combine(DataDir, "settings.json");

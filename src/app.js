@@ -597,6 +597,7 @@ function updateChrome() {
   $("#delete").disabled = !state.selectedId;
   $("#undo").disabled = state.undo.length === 0;
   for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn", "#spotsBtn"]) $(id).disabled = !hasDoc;
+  syncTabDirty();
   $("#fileName").textContent = state.fileName ? `${state.fileName}${state.dirty ? " •" : ""}` : "";
   const hint = HINTS[state.tool];
   $("#hint").textContent = hint || "";
@@ -698,6 +699,16 @@ document.addEventListener("keydown", (e) => {
     if (state.doc) save();
     return;
   }
+  if (tabs.length && ((mod && e.key.toLowerCase() === "w") || (e.ctrlKey && e.key === "F4"))) {
+    e.preventDefault();
+    closeTab(activeTab);
+    return;
+  }
+  if (e.ctrlKey && (e.key === "Tab" || e.key === "PageDown" || e.key === "PageUp")) {
+    e.preventDefault();
+    stepTab(e.key === "PageUp" || (e.key === "Tab" && e.shiftKey) ? -1 : 1);
+    return;
+  }
   if (mod && e.key.toLowerCase() === "o") {
     e.preventDefault();
     chooseFile();
@@ -789,7 +800,7 @@ window.addEventListener("drop", (e) => {
 });
 
 window.addEventListener("beforeunload", (e) => {
-  if (state.dirty) e.preventDefault();
+  if (anyDirty()) e.preventDefault();
 });
 
 // ---------------------------------------------------------------------------
@@ -799,8 +810,15 @@ window.addEventListener("beforeunload", (e) => {
 eventBus.on("pagesinit", () => {
   requestAnimationFrame(() => {
     // Fit the page width, capped at 125%, and keep fitting when the window resizes.
-    viewer.currentScaleValue = "auto";
+    const view = pendingView;
+    pendingView = null;
+    viewer.currentScaleValue = view?.scale || "auto";
     attachAllOverlays();
+    if (view) {
+      requestAnimationFrame(() => {
+        $("#viewerContainer").scrollTo(view.left, view.top);
+      });
+    }
     $("#viewerContainer").focus({ preventScroll: true });
   });
   $("#pageCount").textContent = `/ ${viewer.pagesCount}`;
@@ -1180,17 +1198,26 @@ renderFormats();
  * @param {FileSystemFileHandle|null} handle  Where the file came from, when known.
  */
 async function openFile(file, handle = null) {
-  if (state.dirty && !confirm("You have unsaved changes. Open another file anyway?")) return;
-  state.fileHandle = handle;
+  // With tabs on, a second file opens beside the first; otherwise it replaces it.
+  const asTab = tabsOn && !!state.doc;
+  if (!asTab && state.dirty && !confirm("You have unsaved changes. Open another file anyway?")) return;
   const data = new Uint8Array(await file.arrayBuffer());
-  if (state.loadingTask) await state.loadingTask.destroy();
-  for (const ov of overlays.values()) ov.remove();
-  overlays.clear();
-  spotLayers.clear();
-  spotCache = new Map();
-  for (const el of els.values()) el.remove();
-  els.clear();
-  Object.assign(state, { doc: null, items: [], undo: [], selectedId: null, editingId: null, dirty: false });
+  let previous = null;
+  if (asTab) {
+    if (state.editingId) finishEditing(state.editingId);
+    stashActive();
+    previous = activeTab;
+  } else if (state.loadingTask) {
+    await state.loadingTask.destroy();
+  }
+  clearDocView();
+  if (asTab || !activeTab) {
+    activeTab = { id: tabSeq++ };
+    tabs.push(activeTab);
+  }
+  const mine = activeTab;
+  resetDocState();
+  state.fileHandle = handle;
   setTool("select");
 
   const task = pdfjsLib.getDocument({ data, ...DOC_OPTIONS });
@@ -1205,24 +1232,234 @@ async function openFile(file, handle = null) {
     const doc = await task.promise;
     state.doc = doc;
     state.fileName = file.name;
-    document.title = `${file.name} · Paraphe`;
+    setTitle();
     doc.annotationStorage.onSetModified = () => markDirty();
     document.body.classList.add("has-doc");
+    pendingView = null;
     viewer.setDocument(doc);
     linkService.setDocument(doc);
     findController.setDocument(doc);
     $("#findInput").value = "";
     showFindCount();
     loadOutline(doc);
+    renderTabs();
     const fields = await doc.getFieldObjects();
-    if (collectNumberFields(fields)) toast("Click a field to fill it in.");
+    if (doc === state.doc && collectNumberFields(fields)) toast("Click a field to fill it in.");
   } catch (err) {
-    if (err?.name === "PasswordException") return;
-    console.error(err);
-    console.warn("Open:", err);
-    toast("Couldn't open this PDF. It may be damaged.");
+    if (err?.name !== "PasswordException") {
+      console.error(err);
+      console.warn("Open:", err);
+      toast("Couldn't open this PDF. It may be damaged.");
+    }
+    if (!state.doc && activeTab === mine) {
+      // Nothing opened: forget the new tab and go back to the one we left.
+      tabs.splice(tabs.indexOf(mine), 1);
+      if (previous) showTab(previous);
+      else showNothing();
+    }
   }
   updateChrome();
+}
+
+// ---------------------------------------------------------------------------
+// Tabs (opt-in: Settings > Tabs). Each tab keeps its own document, placed
+// items, undo history and view; the active tab's copy lives in `state`.
+// ---------------------------------------------------------------------------
+
+const TABS_KEY = "paraphe.tabs";
+let tabsOn = false;
+try {
+  tabsOn = localStorage.getItem(TABS_KEY) === "1";
+} catch {
+  // Storage blocked: tabs stay off.
+}
+const tabs = [];
+let activeTab = null;
+let tabSeq = 1;
+let pendingView = null;
+const DOC_FIELDS = ["doc", "loadingTask", "fileName", "fileHandle", "items", "selectedId", "editingId", "undo", "dirty", "nextId"];
+
+function anyDirty() {
+  return state.dirty || tabs.some((t) => t !== activeTab && t.dirty);
+}
+
+/** Copy the active tab's working state back into its record. */
+function stashActive() {
+  if (!activeTab) return;
+  for (const k of DOC_FIELDS) activeTab[k] = state[k];
+  activeTab.spotCache = spotCache;
+  activeTab.numberFields = new Map(numberFields);
+  const c = $("#viewerContainer");
+  activeTab.view = { scale: viewer.currentScaleValue, top: c.scrollTop, left: c.scrollLeft };
+}
+
+/** Drop everything drawn over the pages of the document on screen. */
+function clearDocView() {
+  for (const ov of overlays.values()) ov.remove();
+  overlays.clear();
+  spotLayers.clear();
+  for (const el of els.values()) el.remove();
+  els.clear();
+}
+
+function resetDocState() {
+  Object.assign(state, {
+    doc: null, loadingTask: null, fileName: "", fileHandle: null, items: [], undo: [],
+    selectedId: null, editingId: null, dirty: false, nextId: 1,
+  });
+  spotCache = new Map();
+  numberFields.clear();
+}
+
+function setTitle() {
+  document.title = state.fileName ? `${state.fileName} · Paraphe` : "Paraphe";
+}
+
+/** Show a tab's document in the viewer. */
+function showTab(tab) {
+  activeTab = tab;
+  for (const k of DOC_FIELDS) state[k] = tab[k];
+  spotCache = tab.spotCache || new Map();
+  numberFields.clear();
+  for (const [k, v] of tab.numberFields || []) numberFields.set(k, v);
+  setTool("select");
+  setTitle();
+  document.body.classList.add("has-doc");
+  pendingView = tab.view || null;
+  viewer.setDocument(tab.doc);
+  linkService.setDocument(tab.doc);
+  findController.setDocument(tab.doc);
+  $("#findInput").value = "";
+  showFindCount();
+  loadOutline(tab.doc);
+  renderTabs();
+  updateChrome();
+}
+
+function switchTab(tab) {
+  if (!tab || tab === activeTab) return;
+  if (state.editingId) finishEditing(state.editingId);
+  stashActive();
+  clearDocView();
+  showTab(tab);
+}
+
+/** Show the empty start screen (the last tab was closed). */
+function showNothing() {
+  activeTab = null;
+  clearDocView();
+  resetDocState();
+  try {
+    viewer.setDocument(null);
+    linkService.setDocument(null);
+  } catch (err) {
+    console.warn("Close:", err);
+  }
+  $("#outline").replaceChildren();
+  $("#sidebarToggle").hidden = true;
+  setSidebar(false);
+  setTitle();
+  renderTabs();
+  updateChrome();
+}
+
+async function closeTab(tab) {
+  const isActive = tab === activeTab;
+  if (isActive && state.editingId) finishEditing(state.editingId);
+  const dirty = isActive ? state.dirty : tab.dirty;
+  const name = (isActive ? state.fileName : tab.fileName) || "this file";
+  if (dirty && !confirm(`${name} has unsaved changes. Close it anyway?`)) return;
+  const i = tabs.indexOf(tab);
+  if (i < 0) return;
+  const task = isActive ? state.loadingTask : tab.loadingTask;
+  tabs.splice(i, 1);
+  if (isActive) {
+    const next = tabs[Math.min(i, tabs.length - 1)];
+    if (next) {
+      clearDocView();
+      showTab(next);
+    } else {
+      showNothing();
+    }
+  } else {
+    renderTabs();
+  }
+  task?.destroy().catch(() => {});
+}
+
+const tabLabel = (t) => (t === activeTab ? state.fileName : t.fileName).replace(/\.pdf$/i, "") || "Untitled";
+
+function renderTabs() {
+  const bar = $("#tabbar");
+  const show = tabs.length > 1 || (tabsOn && tabs.length > 0);
+  bar.hidden = !show;
+  document.body.classList.toggle("has-tabs", show);
+  if (!show) return void bar.replaceChildren();
+  const els = tabs.map((t) => {
+    const tab = document.createElement("div");
+    tab.className = "tab";
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", String(t === activeTab));
+    tab.title = t === activeTab ? state.fileName : t.fileName;
+    const label = document.createElement("button");
+    label.type = "button";
+    label.className = "tab-label";
+    label.tabIndex = t === activeTab ? 0 : -1;
+    label.textContent = tabLabel(t);
+    const dot = document.createElement("i");
+    dot.className = "tab-dot";
+    dot.title = "Not saved yet";
+    dot.hidden = !(t === activeTab ? state.dirty : t.dirty);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "tab-close";
+    close.setAttribute("aria-label", `Close ${tabLabel(t)}`);
+    close.textContent = "✕";
+    label.addEventListener("click", () => switchTab(t));
+    close.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeTab(t);
+    });
+    tab.addEventListener("auxclick", (e) => {
+      if (e.button === 1) closeTab(t);
+    });
+    tab.append(label, dot, close);
+    t.el = tab;
+    t.dot = dot;
+    return tab;
+  });
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "tab-add";
+  add.title = "Open another PDF";
+  add.setAttribute("aria-label", "Open another PDF");
+  add.textContent = "+";
+  add.addEventListener("click", chooseFile);
+  bar.replaceChildren(...els, add);
+  bar.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+/** Keep the "not saved" dots current without rebuilding the bar. */
+function syncTabDirty() {
+  for (const t of tabs) if (t.dot) t.dot.hidden = !(t === activeTab ? state.dirty : t.dirty);
+}
+
+function stepTab(delta) {
+  if (tabs.length < 2) return;
+  const i = tabs.indexOf(activeTab);
+  switchTab(tabs[(i + delta + tabs.length) % tabs.length]);
+}
+
+function setTabsOn(on) {
+  tabsOn = on;
+  try {
+    if (on) localStorage.setItem(TABS_KEY, "1");
+    else localStorage.removeItem(TABS_KEY);
+  } catch {
+    // Storage blocked: the choice lasts until the page closes.
+  }
+  renderTabs();
+  host?.postMessage({ type: "tabs", on });
 }
 
 // ---------------------------------------------------------------------------
@@ -1370,7 +1607,7 @@ function toast(msg) {
 // ---------------------------------------------------------------------------
 
 // Asked by the app before its window closes.
-window.parapheIsDirty = () => state.dirty;
+window.parapheIsDirty = () => anyDirty();
 
 const winHost = window.chrome?.webview;
 const macHost = window.webkit?.messageHandlers?.paraphe;
@@ -1492,6 +1729,7 @@ function renderFavicon() {
 onAppearanceChange(() => { renderAppearance(); renderFavicon(); sendTheme(); });
 renderFavicon();
 
+$("#tabsOn").addEventListener("change", (e) => setTabsOn(e.target.checked));
 const openSettings = () => { renderSettings(); $("#settingsDialog").showModal(); };
 $("#settingsBtn").addEventListener("click", openSettings);
 $("#emptySettings").addEventListener("click", openSettings);
@@ -1500,6 +1738,7 @@ const isWindowsApp = () => !!hostInfo.features?.includes("updates");
 
 function renderSettings() {
   renderAppearance();
+  $("#tabsOn").checked = tabsOn;
   for (const el of document.querySelectorAll("#settingsDialog [data-host]")) el.hidden = !isWindowsApp();
   for (const el of document.querySelectorAll("#settingsDialog [data-web]")) el.hidden = !!host;
   $("#setVersion").textContent = `Paraphe ${hostInfo.version || ""}`.trim();
@@ -1645,6 +1884,7 @@ if (host) {
     host.postMessage({ type: "uninstall" });
   });
   host.postMessage({ type: "ready" });
+  host.postMessage({ type: "tabs", on: tabsOn });
 }
 
 // Exposed for automated tests only.

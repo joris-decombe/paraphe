@@ -19,6 +19,10 @@ the toolbar) has the rest:
   green, orange, pink or violet), each with a light and a dark side. The
   title bar follows. Also in the web app, where Settings links to the Windows
   download.
+- **Tabs** (off by default): each PDF you open goes in its own tab, with its own
+  edits and undo, instead of replacing the current one. `Ctrl+Tab` switches,
+  `Ctrl+W` closes. On Windows, a PDF opened from Explorer joins the running
+  window; on macOS, Finder already does.
 - **Make Paraphe the default** shows Windows' own "Open with" list for PDFs:
   pick Paraphe, then **Always** (Windows doesn't let apps make themselves the
   default). The panel says which app opens your PDFs now.
