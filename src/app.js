@@ -809,6 +809,7 @@ eventBus.on("pagesinit", () => {
 eventBus.on("pagerendered", ({ pageNumber }) => {
   ensureOverlay(pageNumber - 1);
   for (const item of state.items) if (item.page === pageNumber - 1) layoutItem(item);
+  layoutSpots(pageNumber - 1);
 });
 eventBus.on("scalechanging", ({ scale, presetValue }) => {
   attachAllOverlays();

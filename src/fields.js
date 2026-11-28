@@ -37,10 +37,17 @@ function readText(content, viewport) {
   const runs = [];
   for (const it of content.items) {
     if (!it.str || !it.str.trim()) continue;
-    const [a, b, , , e, f] = it.transform;
-    if (Math.abs(b) > 0.01 || a <= 0 || !it.width) continue; // rotated or mirrored text: leave alone
+    const [a, b, c, d, e, f] = it.transform;
+    const lu = Math.hypot(a, b);
+    const lv = Math.hypot(c, d);
+    if (!lu || !lv || !it.width) continue;
+    // Corners of the text run, in the page's own space and then as displayed.
+    const h = it.height || lv;
     const [x1, y1] = viewport.convertToViewportPoint(e, f);
-    const [x2, y2] = viewport.convertToViewportPoint(e + it.width, f + (it.height || Math.abs(a)));
+    const [x2, y2] = viewport.convertToViewportPoint(e + (a / lu) * it.width + (c / lv) * h, f + (b / lu) * it.width + (d / lv) * h);
+    const [ux, uy] = viewport.convertToViewportPoint(e + a / lu, f + b / lu);
+    // Only text that reads left to right as displayed can label a field.
+    if (ux - x1 < 0.9 || Math.abs(uy - y1) > 0.1) continue;
     const box = { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
     if (!box.w || !box.h) continue;
     const per = box.w / it.str.length;
@@ -109,6 +116,10 @@ function readShapes(list, viewport, OPS) {
     if (fn === OPS.save) stack.push(ctm);
     else if (fn === OPS.restore) ctm = stack.pop() || ctm;
     else if (fn === OPS.transform) ctm = mul(args, ctm);
+    else if (fn === OPS.paintFormXObjectBegin) {
+      stack.push(ctm);
+      if (args?.[0]) ctm = mul(args[0], ctm);
+    } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() || ctm;
     else if (fn === OPS.constructPath) {
       const paint = args[0];
       const painted = STROKE.has(paint) ? "stroke" : FILL.has(paint) ? "fill" : null;
