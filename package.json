@@ -1,6 +1,6 @@
 {
   "name": "paraphe",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Fill and sign PDFs. Offline, no ads, no bloat.",
   "scripts": {
     "build": "node build.mjs",
