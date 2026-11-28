@@ -476,11 +476,13 @@ function onOverlayPointerDown(e, pageIndex) {
       break;
     }
     case "sign": {
-      const { src, ratio } = state.pendingImage;
-      let w = 150;
+      const { src, ratio, kind } = state.pendingImage;
+      const initials = kind === "initials";
+      let w = initials ? 70 : 150;
       let h = w / ratio;
-      if (h > 50) {
-        h = 50;
+      const maxH = initials ? 30 : 50;
+      if (h > maxH) {
+        h = maxH;
         w = h * ratio;
       }
       item = { ...base, type: "image", src, x: p.x - w / 2, y: p.y - h / 2, w, h };
@@ -599,11 +601,11 @@ function updateChrome() {
   $("#save").disabled = !hasDoc;
   $("#delete").disabled = !state.selectedId;
   $("#undo").disabled = state.undo.length === 0;
-  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn", "#spotsBtn"]) $(id).disabled = !hasDoc;
+  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn", "#spotsBtn", "#initialBtn"]) $(id).disabled = !hasDoc;
   syncTabDirty();
   document.body.classList.toggle("dirty", state.dirty);
   $("#fileName").textContent = state.fileName ? `${state.fileName}${state.dirty ? " •" : ""}` : "";
-  const hint = HINTS[state.tool];
+  const hint = state.tool === "sign" && state.pendingImage?.kind === "initials" ? "Click where the initials should go · Esc to cancel" : HINTS[state.tool];
   $("#hint").textContent = hint || "";
   $("#hint").hidden = !hint;
 }
@@ -1270,6 +1272,92 @@ async function openFile(file, handle = null) {
   }
   updateChrome();
 }
+
+// ---------------------------------------------------------------------------
+// Paraphe: initials on the pages
+// ---------------------------------------------------------------------------
+
+let pendingInitials = null;
+const INITIAL_H = 24; // points, before it is capped in width
+
+function toggleInitialPop(open = $("#initialPop").hidden) {
+  $("#initialPop").hidden = !open;
+  $("#initialBtn").setAttribute("aria-expanded", String(open));
+}
+
+async function startInitials() {
+  if (!state.doc) return;
+  if (state.editingId) finishEditing(state.editingId);
+  toggleInitialPop(false);
+  const src = await chooseSignature("initials");
+  if (!src) return;
+  const img = new Image();
+  img.src = src;
+  await img.decode();
+  pendingInitials = { src, ratio: img.naturalWidth / img.naturalHeight };
+  $('#initialPop [data-where="allButLast"]').disabled = viewer.pagesCount < 2;
+  toggleInitialPop(true);
+}
+
+/** The initials for one page: bottom-right, above anything already there. */
+function initialsItem(pageIndex, { src, ratio }) {
+  const pv = viewer.getPageView(pageIndex);
+  const s = pv.viewport.scale;
+  const pageW = pv.viewport.width / s;
+  const pageH = pv.viewport.height / s;
+  let h = INITIAL_H;
+  let w = h * ratio;
+  if (w > 80) {
+    w = 80;
+    h = w / ratio;
+  }
+  const x = pageW - 36 - w;
+  let y = pageH - 28 - h;
+  const clash = () => state.items.some((it) => {
+    if (it.page !== pageIndex) return false;
+    const b = itemBox(it);
+    return b.x < x + w && x < b.x + b.w && b.y < y + h && y < b.y + b.h;
+  });
+  for (let i = 0; i < 4 && clash(); i++) y -= h + 4;
+  return { id: state.nextId++, page: pageIndex, color: state.color, type: "image", src, x, y, w, h };
+}
+
+function placeInitials(where) {
+  const p = pendingInitials;
+  toggleInitialPop(false);
+  if (!p) return;
+  if (where === "one") {
+    setTool("sign");
+    state.pendingImage = { ...p, kind: "initials" };
+    updateChrome();
+    return;
+  }
+  const count = where === "allButLast" ? viewer.pagesCount - 1 : viewer.pagesCount;
+  if (count < 1) return;
+  pushUndo();
+  for (let i = 0; i < count; i++) {
+    const item = initialsItem(i, p);
+    state.items.push(item);
+    layoutItem(item);
+  }
+  select(null);
+  toast(`Initialled ${count} ${count === 1 ? "page" : "pages"}. Drag one to move it.`);
+}
+
+$("#initialBtn").addEventListener("click", startInitials);
+$("#initialPop").addEventListener("click", (e) => {
+  const where = e.target.closest("[data-where]")?.dataset.where;
+  if (where) placeInitials(where);
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!$("#initialPop").hidden && !e.target.closest("#initialWrap")) toggleInitialPop(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#initialPop").hidden) {
+    toggleInitialPop(false);
+    e.stopImmediatePropagation();
+  }
+}, true);
 
 // ---------------------------------------------------------------------------
 // Reading view: just the page. The bar floats over it and tucks away while you

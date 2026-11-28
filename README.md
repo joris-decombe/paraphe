@@ -87,6 +87,7 @@ Drop a PDF on the window, or press **Ctrl+O** (⌘O on macOS).
 | Change date or number style | The region button next to **Date** (e.g. `FR`): region, and short, long or ISO dates. It starts from your browser's language |
 | Fill an amount | Type it any way (`1234,5`, `1,234.50`). Fields the form marks as amounts or percentages are rewritten in your region's style, e.g. `1 234,50 €` |
 | Sign | **Sign**: draw, type or import a photo of your signature, then click where it goes. Signatures are kept in this browser for next time |
+| Paraphe | The **Initial** button (a page with a squiggle): draw, type or import your initials once, then put them on every page, every page but the last, or one page. Each one can be moved or deleted on its own, and the whole batch is one **Ctrl+Z** |
 | Move or resize | Drag an item, or its corner handle. Arrow keys nudge |
 | Undo / delete | **Ctrl+Z** / **Del** |
 | Save | **Ctrl+S** (⌘S on macOS) writes a copy named `… (signed).pdf`, in your region's language (`… (signé).pdf`) |

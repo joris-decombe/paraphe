@@ -143,6 +143,18 @@ try {
     <span>Sign</span>
   </button>
 
+  <span class="pop-anchor" id="initialWrap">
+    <button id="initialBtn" class="tool" title="Initial the pages (paraphe)" aria-label="Initial the pages" aria-haspopup="menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 15c1.2-.3 1.6-3.8 3-3.8S11.6 15 13 15s1.2-2 2-2"/></svg>
+    </button>
+    <div id="initialPop" class="popover" role="menu" hidden>
+      <div class="pop-label">Put your initials on</div>
+      <button type="button" class="choice" role="menuitem" data-where="all">Every page</button>
+      <button type="button" class="choice" role="menuitem" data-where="allButLast">Every page but the last <small>the last one carries your signature</small></button>
+      <button type="button" class="choice" role="menuitem" data-where="one">One page <small>click where it goes</small></button>
+    </div>
+  </span>
+
   <div class="dock-group" aria-label="Text style">
     <button id="sizeDown" class="tool" title="Smaller text" aria-label="Smaller">
       <svg viewBox="0 0 24 24"><path d="M7 12h10"/></svg>

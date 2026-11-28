@@ -224,7 +224,7 @@ body:not(.has-doc) .zoom-select { opacity: 0.35; pointer-events: none; }
 }
 body:not(.has-doc) .dock { display: none; }
 .dock-group { display: flex; align-items: center; gap: 2px; }
-.dock-group + .dock-group, .sign-btn + .dock-group { padding-left: 6px; border-left: 1px solid var(--line); }
+.dock-group + .dock-group, .sign-btn + .dock-group, #initialWrap + .dock-group { padding-left: 6px; border-left: 1px solid var(--line); }
 .dock .tool { height: 38px; min-width: 38px; }
 
 .sign-btn {
@@ -631,3 +631,7 @@ body.reading.has-doc.dirty #save { display: inline-flex; }
 /* The first page starts under the floating bar. */
 body.reading.has-doc #viewerContainer .pdfViewer { padding-top: var(--top); }
 body.reading.has-doc .sidebar { padding-top: var(--top); box-sizing: border-box; }
+
+#initialPop { width: 300px; padding: 10px; }
+#initialPop .choice:disabled { opacity: 0.4; cursor: default; }
+#initialPop .choice { flex-direction: column; align-items: flex-start; gap: 1px; }
