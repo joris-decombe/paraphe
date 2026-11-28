@@ -4,6 +4,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import "./app.css";
 import bundledFiles from "virtual:pdf-assets";
 import { chooseSignature } from "./signature.js";
+import { detectSpots } from "./fields.js";
 import { THEMES, appearance, isDark, onAppearanceChange, setAppearance } from "./appearance.js";
 import {
   DATE_STYLES, formatDate, formatForField, formatValue, formats, numberSpecFromActions,
@@ -102,6 +103,8 @@ const state = {
   undo: [],
   dirty: false,
   nextId: 1,
+  /** Opt-in: show likely places to fill in on flat PDFs. */
+  showSpots: false,
 };
 
 const els = new Map(); // item id -> element
@@ -169,6 +172,7 @@ function attachAllOverlays() {
   if (!state.doc) return;
   for (let i = 0; i < viewer.pagesCount; i++) ensureOverlay(i);
   for (const item of state.items) layoutItem(item);
+  layoutAllSpots();
 }
 
 function createItemEl(item) {
@@ -236,6 +240,7 @@ function rebuildItems() {
   for (const el of els.values()) el.remove();
   els.clear();
   for (const item of state.items) layoutItem(item);
+  layoutAllSpots();
   updateChrome();
 }
 
@@ -245,6 +250,7 @@ function removeItem(id) {
   els.delete(id);
   if (state.selectedId === id) state.selectedId = null;
   if (state.editingId === id) state.editingId = null;
+  layoutAllSpots();
 }
 
 function select(id) {
@@ -255,6 +261,134 @@ function select(id) {
   if (item) state.color = item.color;
   updateChrome();
 }
+
+// ---------------------------------------------------------------------------
+// Likely places to fill in (flat PDFs)
+// ---------------------------------------------------------------------------
+
+/** page index -> promise of the spots found on that page (cleared per document). */
+let spotCache = new Map();
+const spotLayers = new Map(); // page index -> layer element
+
+function spotsFor(pageIndex) {
+  let p = spotCache.get(pageIndex);
+  if (!p) {
+    const doc = state.doc;
+    p = (async () => {
+      const page = await doc.getPage(pageIndex + 1);
+      const viewport = page.getViewport({ scale: 1 });
+      const annots = await page.getAnnotations();
+      const widgets = annots.filter((a) => a.subtype === "Widget" && a.rect).map((a) => {
+        const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(a.rect);
+        return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+      });
+      return detectSpots(page, pdfjsLib.OPS, widgets);
+    })().catch((err) => {
+      console.warn("Spots:", err);
+      return [];
+    });
+    spotCache.set(pageIndex, p);
+  }
+  return p;
+}
+
+function spotTaken(spot, pageIndex) {
+  return state.items.some((item) => {
+    if (item.page !== pageIndex) return false;
+    const b = itemBox(item);
+    const w = Math.min(b.x + b.w, spot.x + spot.w) - Math.max(b.x, spot.x);
+    const h = Math.min(b.y + b.h, spot.y + spot.h) - Math.max(b.y, spot.y);
+    return w > 0 && h > 0 && w * h > 0.3 * Math.min(b.w * b.h, spot.w * spot.h);
+  });
+}
+
+async function layoutSpots(pageIndex) {
+  const ov = overlays.get(pageIndex);
+  let layer = spotLayers.get(pageIndex);
+  if (!state.showSpots || !state.doc || !ov) {
+    layer?.remove();
+    spotLayers.delete(pageIndex);
+    return;
+  }
+  const doc = state.doc;
+  const spots = await spotsFor(pageIndex);
+  if (doc !== state.doc || !state.showSpots) return;
+  layer = spotLayers.get(pageIndex);
+  if (!layer || layer.parentNode !== ov) {
+    layer?.remove();
+    layer = document.createElement("div");
+    layer.className = "pp-spots";
+    ov.prepend(layer);
+    spotLayers.set(pageIndex, layer);
+    for (const spot of spots) {
+      const el = document.createElement("div");
+      el.className = "pp-spot";
+      el.title = spot.kind === "check" ? "Click to tick" : "Click to type here";
+      el.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        useSpot(spot, pageIndex);
+      });
+      spot.el = el;
+      layer.append(el);
+    }
+  }
+  const s = pageScale(pageIndex);
+  for (const spot of spots) {
+    const el = spot.el;
+    if (!el || el.parentNode !== layer) continue;
+    el.style.left = `${spot.x * s}px`;
+    el.style.top = `${spot.y * s}px`;
+    el.style.width = `${spot.w * s}px`;
+    el.style.height = `${spot.h * s}px`;
+    el.hidden = spotTaken(spot, pageIndex);
+  }
+}
+
+function layoutAllSpots() {
+  if (!state.doc) return;
+  for (const i of overlays.keys()) layoutSpots(i);
+}
+
+function useSpot(spot, pageIndex) {
+  if (state.editingId) finishEditing(state.editingId);
+  const base = { id: state.nextId++, page: pageIndex, color: state.color };
+  let item;
+  if (spot.kind === "check") {
+    const w = Math.max(8, Math.min(spot.w, spot.h) * 1.1);
+    item = { ...base, type: "check", x: spot.x + spot.w / 2 - w / 2, y: spot.y + spot.h / 2 - w / 2, w, h: w };
+  } else {
+    let size = state.textSize;
+    let y;
+    if (spot.kind === "box") {
+      size = Math.max(7, Math.min(size, Math.floor(spot.h / LINE_FACTOR)));
+      y = spot.y + (spot.h - LINE_FACTOR * size) / 2;
+    } else {
+      y = spot.y + spot.h - LINE_FACTOR * size + 1; // sits on the line
+    }
+    item = { ...base, type: "text", size, text: "", x: spot.x + 2, y };
+  }
+  pushUndo();
+  state.items.push(item);
+  layoutItem(item);
+  select(item.id);
+  layoutSpots(pageIndex);
+  if (item.type === "text") {
+    item.isNew = true;
+    setTool("select");
+    startEditing(item.id);
+  }
+  updateChrome();
+}
+
+function setSpots(on) {
+  state.showSpots = on;
+  $("#spotsBtn").setAttribute("aria-pressed", String(on));
+  layoutAllSpots();
+  if (on && state.doc) toast("Dotted spots are likely places to fill in. Click one.");
+}
+$("#spotsBtn").addEventListener("click", () => setSpots(!state.showSpots));
 
 // ---------------------------------------------------------------------------
 // Text editing
@@ -462,7 +596,7 @@ function updateChrome() {
   $("#save").disabled = !hasDoc;
   $("#delete").disabled = !state.selectedId;
   $("#undo").disabled = state.undo.length === 0;
-  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn"]) $(id).disabled = !hasDoc;
+  for (const id of ["#zoomIn", "#zoomOut", "#sizeDown", "#sizeUp", "#findBtn", "#printBtn", "#spotsBtn"]) $(id).disabled = !hasDoc;
   $("#fileName").textContent = state.fileName ? `${state.fileName}${state.dirty ? " •" : ""}` : "";
   const hint = HINTS[state.tool];
   $("#hint").textContent = hint || "";
@@ -1051,6 +1185,8 @@ async function openFile(file, handle = null) {
   if (state.loadingTask) await state.loadingTask.destroy();
   for (const ov of overlays.values()) ov.remove();
   overlays.clear();
+  spotLayers.clear();
+  spotCache = new Map();
   for (const el of els.values()) el.remove();
   els.clear();
   Object.assign(state, { doc: null, items: [], undo: [], selectedId: null, editingId: null, dirty: false });
