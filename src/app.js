@@ -1336,7 +1336,24 @@ $("#themeChoice").replaceChildren(...THEMES.map((t) => {
 for (const b of document.querySelectorAll("#modeChoice [data-mode]")) {
   b.addEventListener("click", () => setAppearance({ mode: b.dataset.mode }));
 }
-onAppearanceChange(() => { renderAppearance(); sendTheme(); });
+/** The tab icon uses the current accent: light tile with dark ink in dark mode. */
+function renderFavicon() {
+  const root = getComputedStyle(document.documentElement);
+  const tile = root.getPropertyValue("--ink").trim();
+  if (!tile) return;
+  const stroke = isDark() ? "#1b1d22" : "#fff";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='${tile}'/><path d='M7 21c3-1 4-9 7-9s-1 9 2 9 3-5 5-5 1 4 4 3' fill='none' stroke='${stroke}' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+  let link = document.querySelector("link[rel~='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.append(link);
+  }
+  link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+}
+
+onAppearanceChange(() => { renderAppearance(); renderFavicon(); sendTheme(); });
+renderFavicon();
 
 const openSettings = () => { renderSettings(); $("#settingsDialog").showModal(); };
 $("#settingsBtn").addEventListener("click", openSettings);
