@@ -23,6 +23,7 @@ namespace Paraphe
         private readonly WebView2 _web = new WebView2 { Dock = DockStyle.Fill };
         private readonly bool _devTools;
         private string _pendingFile;
+        private bool _pageReady;
         private string _currentDir;
         private bool _closeConfirmed;
         private bool _restartAfterUpdate;
@@ -42,6 +43,7 @@ namespace Paraphe
             BackColor = Color.FromArgb(232, 228, 220);
             Controls.Add(_web);
             Load += async (s, e) => await InitAsync();
+            if (SingleInstance.Owner) SingleInstance.Listen(path => BeginInvoke(new Action(() => OpenFromOtherInstance(path))));
         }
 
         private async Task InitAsync()
@@ -134,6 +136,7 @@ namespace Paraphe
                     Save(msg["name"] as string, msg["data"] as string);
                     break;
                 case "ready":
+                    _pageReady = true;
                     PostHostInfo();
                     if (_pendingFile != null)
                     {
@@ -159,6 +162,11 @@ namespace Paraphe
                         Close();
                     }
                     else PostHostInfo();
+                    break;
+                case "tabs":
+                    var tabSettings = Updater.Load();
+                    tabSettings.Tabs = msg.TryGetValue("on", out object on) && on is bool b && b;
+                    Updater.Save(tabSettings);
                     break;
                 case "updates-mode":
                     SetUpdatesMode(msg["mode"] as string);
@@ -363,6 +371,15 @@ namespace Paraphe
                     Reply(new Dictionary<string, object> { ["type"] = "save-failed", ["error"] = ex.Message });
                 }
             }
+        }
+
+        /// <summary>A PDF another Paraphe was asked to open (tabs on): open it here.</summary>
+        private void OpenFromOtherInstance(string path)
+        {
+            if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+            if (_pageReady && _web.CoreWebView2 != null) OpenInPage(path);
+            else _pendingFile = path;
+            Activate();
         }
 
         /// <summary>Hand the page a handle to the file Explorer asked us to open.</summary>

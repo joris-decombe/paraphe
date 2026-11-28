@@ -156,6 +156,8 @@ try {
   <nav id="outline" class="outline"></nav>
 </aside>
 
+<div id="tabbar" class="tabbar" role="tablist" aria-label="Open files" hidden></div>
+
 <div id="viewerContainer" tabindex="-1"><div id="viewer" class="pdfViewer"></div></div>
 
 <div id="findbar" class="findbar" role="search" hidden>
@@ -201,6 +203,12 @@ try {
         <button type="button" role="radio" data-mode="dark">Dark</button>
       </div>
       <div id="themeChoice" class="themes" role="radiogroup" aria-label="Colour"></div>
+    </section>
+    <section class="set-row">
+      <div>
+        <h3>Tabs</h3>
+        <label class="check-row"><input type="checkbox" id="tabsOn"> Open each PDF in its own tab</label>
+      </div>
     </section>
     <section class="set-row" data-host>
       <div>

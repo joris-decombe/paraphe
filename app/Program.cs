@@ -40,6 +40,10 @@ namespace Paraphe
             string file = args.FirstOrDefault(a => !a.StartsWith("--") && File.Exists(a));
             bool devTools = args.Contains("--devtools", StringComparer.OrdinalIgnoreCase);
 
+            // With tabs on, a second PDF opened from Explorer joins the running window.
+            bool first = SingleInstance.IsFirst();
+            if (!first && file != null && Updater.Load().Tabs && SingleInstance.TrySend(Path.GetFullPath(file))) return 0;
+
             Application.Run(new MainForm(file == null ? null : Path.GetFullPath(file), devTools));
             return 0;
         }
